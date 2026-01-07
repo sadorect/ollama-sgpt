@@ -1,0 +1,3 @@
+[project]
+name = "ollama-sgpt"
+version = "0.1.0"
