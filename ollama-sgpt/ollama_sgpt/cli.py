@@ -4,8 +4,9 @@ from rich.console import Console
 from rich.markdown import Markdown
 from .config import load_config
 from .history import load_history, save_history
-from .ollama_client import stream_chat, chat
+from .ollama_client import stream_chat, check_ollama_health, validate_model
 from .roles import ROLES
+from .exceptions import OllamaConnectionError, OllamaModelError
 
 console = Console()
 
@@ -40,9 +41,15 @@ def interactive_loop(config, role):
             history.append({"role": "assistant", "content": response})
             save_history(config["history_file"], history)
 
+        except OllamaConnectionError as e:
+            console.print(f"\n[bold red]Error:[/] {e}")
+            console.print("[yellow]Make sure Ollama is running: ollama serve[/]")
         except KeyboardInterrupt:
             console.print("\nbye 👋")
             break
+        except Exception as e:
+            console.print(f"\n[bold red]Unexpected error:[/] {e}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="ShellGPT-style CLI for Ollama")
@@ -60,6 +67,22 @@ def main():
         config["model"] = args.model
     if args.no_stream:
         config["stream"] = False
+
+    # Validate Ollama connection and model
+    try:
+        check_ollama_health(config["ollama_url"])
+        validate_model(config["ollama_url"], config["model"])
+    except OllamaConnectionError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        console.print("\n[yellow]Troubleshooting:[/]")
+        console.print("1. Make sure Ollama is installed: https://ollama.ai")
+        console.print("2. Start Ollama server: ollama serve")
+        console.print("3. Check server is running: curl http://localhost:11434/api/version")
+        sys.exit(1)
+    except OllamaModelError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        console.print(f"\n[yellow]To download the model:[/] ollama pull {config['model']}")
+        sys.exit(1)
 
     role = "default"
     if args.shell:
@@ -86,8 +109,16 @@ def main():
         "stream": config["stream"]
     }
 
-    response = stream_chat(config["ollama_url"], payload)
-    console.print(Markdown(response))
+    try:
+        response = stream_chat(config["ollama_url"], payload)
+        console.print(Markdown(response))
+    except OllamaConnectionError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[bold red]Unexpected error:[/] {e}")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

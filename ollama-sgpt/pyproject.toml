@@ -1,3 +1,92 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ollama-sgpt"
-version = "0.1.0"
+version = "0.2.0"
+description = "A powerful ShellGPT alternative powered by Ollama for local, private AI assistance"
+authors = [
+    {name = "sadorect", email = "sadorect@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+keywords = ["ai", "cli", "ollama", "llm", "shell", "gpt", "assistant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "click>=8.1.0",
+    "prompt-toolkit>=3.0.43",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "types-pyyaml>=6.0.0",
+    "types-requests>=2.31.0",
+]
+
+[project.scripts]
+sgpt = "ollama_sgpt.cli:main"
+ollama-sgpt = "ollama_sgpt.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sadorect/ollama-sgpt"
+Repository = "https://github.com/sadorect/ollama-sgpt"
+Issues = "https://github.com/sadorect/ollama-sgpt/issues"
+Documentation = "https://github.com/sadorect/ollama-sgpt#readme"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["../tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=ollama_sgpt --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["ollama_sgpt"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
