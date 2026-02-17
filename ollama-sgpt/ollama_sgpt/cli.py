@@ -12,6 +12,7 @@ from .exceptions import OllamaConnectionError, OllamaModelError, SessionError
 from .session import SessionManager
 from .context import load_context_files, build_context_prompt, format_context_summary, validate_context_files
 from .repl import interactive_loop_enhanced
+from .executor import CodeExecutor
 
 console = Console()
 
@@ -128,6 +129,14 @@ def main():
     parser.add_argument("--context", "-c", action="append",
                         help="Load context from file(s)")
 
+    # Code execution
+    parser.add_argument("--execute", "-e", action="store_true",
+                        help="Execute generated commands (use with --shell)")
+    parser.add_argument("--yes", "-y", action="store_true",
+                        help="Auto-confirm command execution (DANGEROUS!)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show commands without executing")
+
     args = parser.parse_args()
     config = load_config()
 
@@ -183,12 +192,20 @@ def main():
         # Use enhanced REPL
         def chat_func(user_input, history, cfg, r): return execute_chat(
             user_input, history, cfg, r)
+
+        # Initialize executor if needed
+        executor = None
+        if args.execute or args.dry_run:
+            executor = CodeExecutor(timeout=120, auto_confirm=args.yes)
+
         interactive_loop_enhanced(
             config,
             role,
             chat_func,
             session_manager if args.session else None,
-            args.session
+            args.session,
+            executor=executor,
+            dry_run=args.dry_run
         )
         return
 
@@ -250,6 +267,42 @@ def main():
     try:
         response = stream_chat(config["ollama_url"], payload)
         console.print(Markdown(response))
+
+        # Execute command if --execute flag is set
+        if args.execute or args.dry_run:
+            if role == "shell":
+                executor = CodeExecutor(
+                    timeout=120,
+                    auto_confirm=args.yes
+                )
+
+                # Extract command from response
+                command = executor.extract_command_from_response(response)
+
+                if command:
+                    console.print()
+                    console.print("[bold cyan]Extracted command:[/bold cyan]")
+                    result = executor.execute(command, dry_run=args.dry_run)
+
+                    # Store execution result in session if available
+                    if args.session and not args.dry_run:
+                        execution_summary = f"[Executed: {command}]\\nExit code: {result.returncode}"
+                        try:
+                            session_manager.add_message(
+                                args.session,
+                                "assistant",
+                                execution_summary
+                            )
+                        except SessionError:
+                            pass
+                else:
+                    console.print(
+                        "[yellow]⚠️  Could not extract a command from the response[/yellow]")
+                    console.print(
+                        "[dim]The AI response doesn't contain an executable command.[/dim]")
+            else:
+                console.print(
+                    "[yellow]⚠️  --execute flag only works with --shell mode[/yellow]")
 
         # Save to session if using sessions
         if args.session:

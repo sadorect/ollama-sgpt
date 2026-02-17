@@ -13,30 +13,30 @@ console = Console()
 
 def create_repl_session(history_file: Path) -> PromptSession:
     """Create enhanced REPL session with prompt-toolkit.
-    
+
     Args:
         history_file: Path to store command history
-        
+
     Returns:
         Configured PromptSession
     """
     # Ensure history directory exists
     history_file.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Custom key bindings
     bindings = KeyBindings()
-    
+
     @bindings.add('escape', 'enter')
     def _(event):
         """Submit on Esc+Enter."""
         event.current_buffer.validate_and_handle()
-    
+
     # Custom style
     style = Style.from_dict({
         'prompt': 'ansigreen bold',
         'continuation': 'ansigreen',
     })
-    
+
     return PromptSession(
         history=FileHistory(str(history_file)),
         key_bindings=bindings,
@@ -51,34 +51,44 @@ def interactive_loop_enhanced(
     role: str,
     chat_function: Callable,
     session_manager: Optional[object] = None,
-    session_name: Optional[str] = None
+    session_name: Optional[str] = None,
+    executor: Optional[object] = None,
+    dry_run: bool = False
 ):
     """Enhanced interactive loop with multi-line support and special commands.
-    
+
     Args:
         config: Configuration dictionary
         role: Current role (shell, code, explain, etc.)
         chat_function: Function to call for chat responses
         session_manager: Optional SessionManager instance
         session_name: Optional session name to use
+        executor: Optional CodeExecutor instance for command execution
+        dry_run: If True, only preview commands without executing
     """
     history_file = Path.home() / ".ollama-sgpt" / "repl_history"
     session = create_repl_session(history_file)
-    
+
     console.print("\n[bold green]ollama-sgpt Interactive Mode[/bold green]")
     console.print("[dim]Multi-line input: Press Esc+Enter to submit[/dim]")
-    console.print("[dim]Commands: /help, /clear, /history, /exit[/dim]\n")
-    
+    console.print("[dim]Commands: /help, /clear, /history, /exit[/dim]")
+
+    if executor:
+        mode = "DRY RUN" if dry_run else "EXECUTION"
+        console.print(f"[yellow]Command {mode} enabled[/yellow]")
+
+    console.print()
+
     conversation_history = []
-    
+
     while True:
         try:
             # Get user input
             user_input = session.prompt('>>> ').strip()
-            
+
             if not user_input:
                 continue
-            
+
             # Handle special commands
             if user_input.startswith('/'):
                 if handle_special_command(
@@ -89,33 +99,54 @@ def interactive_loop_enhanced(
                 ):
                     break  # Exit if /exit or /quit
                 continue
-            
+
             # Add to conversation history
             conversation_history.append({
                 "role": "user",
                 "content": user_input
             })
-            
+
             # Save to session if using sessions
             if session_manager and session_name:
                 session_manager.add_message(session_name, "user", user_input)
-            
+
             # Get response
             console.print()
-            response = chat_function(user_input, conversation_history, config, role)
-            
+            response = chat_function(
+                user_input, conversation_history, config, role)
+
+            # Execute command if executor is available and role is shell
+            if executor and role == "shell":
+                command = executor.extract_command_from_response(response)
+                if command:
+                    console.print()
+                    console.print("[bold cyan]Extracted command:[/bold cyan]")
+                    result = executor.execute(command, dry_run=dry_run)
+
+                    # Add execution result to conversation if successful
+                    if not dry_run and result.success:
+                        exec_msg = f"[Command executed successfully]\\n{result.stdout}"
+                        conversation_history.append({
+                            "role": "assistant",
+                            "content": exec_msg
+                        })
+                        if session_manager and session_name:
+                            session_manager.add_message(
+                                session_name, "assistant", exec_msg)
+
             # Add response to history
             conversation_history.append({
                 "role": "assistant",
                 "content": response
             })
-            
+
             # Save response to session
             if session_manager and session_name:
-                session_manager.add_message(session_name, "assistant", response)
-            
+                session_manager.add_message(
+                    session_name, "assistant", response)
+
             console.print()
-            
+
         except KeyboardInterrupt:
             console.print("\n[yellow]Interrupted[/yellow]")
             continue
@@ -134,42 +165,42 @@ def handle_special_command(
     session_name: Optional[str]
 ) -> bool:
     """Handle special REPL commands.
-    
+
     Args:
         command: The command string
         conversation_history: Current conversation history
         session_manager: Optional SessionManager instance
         session_name: Optional session name
-        
+
     Returns:
         True if should exit, False otherwise
     """
     cmd = command.lower().strip()
-    
+
     if cmd in ['/exit', '/quit', '/q']:
         console.print("[dim]Goodbye![/dim]")
         return True
-    
+
     elif cmd in ['/help', '/h']:
         show_help()
-    
+
     elif cmd in ['/clear', '/c']:
         conversation_history.clear()
         if session_manager and session_name:
             session_manager.clear_session(session_name)
         console.print("[green]Conversation cleared[/green]")
-    
+
     elif cmd in ['/history', '/hist']:
         show_history(conversation_history)
-    
+
     elif cmd.startswith('/save'):
         # TODO: Implement save to file
         console.print("[yellow]Save command not yet implemented[/yellow]")
-    
+
     else:
         console.print(f"[red]Unknown command:[/red] {command}")
         console.print("[dim]Type /help for available commands[/dim]")
-    
+
     return False
 
 
@@ -199,23 +230,26 @@ def show_help():
 
 def show_history(conversation_history: list):
     """Display conversation history.
-    
+
     Args:
         conversation_history: List of conversation messages
     """
     if not conversation_history:
         console.print("[dim]No conversation history[/dim]")
         return
-    
-    console.print(f"\n[bold]Conversation History ({len(conversation_history)} messages)[/bold]\n")
-    
+
+    console.print(
+        f"\n[bold]Conversation History ({len(conversation_history)} messages)[/bold]\n")
+
     for i, msg in enumerate(conversation_history, 1):
         role = msg['role']
         content = msg['content']
-        
+
         if role == 'user':
-            console.print(f"[bold cyan]{i}. You:[/bold cyan] {content[:100]}...")
+            console.print(
+                f"[bold cyan]{i}. You:[/bold cyan] {content[:100]}...")
         else:
-            console.print(f"[bold green]{i}. Assistant:[/bold green] {content[:100]}...")
-    
+            console.print(
+                f"[bold green]{i}. Assistant:[/bold green] {content[:100]}...")
+
     console.print()
