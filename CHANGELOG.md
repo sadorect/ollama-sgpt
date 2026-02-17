@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Week 3 Completed - 2026-02-17
+
+#### Added
+
+- Code execution framework with comprehensive safety checks
+  - `CodeExecutor` class with 4-tier risk assessment (low/medium/high/critical)
+  - Dangerous pattern detection for 30+ risky command patterns
+  - Command preview with syntax highlighting
+  - Tiered confirmation prompts based on risk level
+  - Timeout protection (configurable, default 120s)
+  - Output capture and formatted display
+  - Command extraction from AI responses (code blocks, inline code, plain text)
+- CLI flags for code execution
+  - `--execute` / `-e` - Execute AI-generated commands
+  - `--yes` / `-y` - Auto-confirm low/medium risk commands (blocked for high/critical)
+  - `--dry-run` - Preview commands without execution
+- Integrated execution in both modes
+  - One-shot command execution
+  - Interactive REPL with live execution
+  - Execution results stored in session history
+- 32 new tests for executor (107 tests total)
+  - Risk analysis: 5 tests
+  - Command extraction: 7 tests
+  - Execution flow: 6 tests
+  - Confirmation logic: 6 tests
+  - Edge cases: 5 tests
+  - Preview functionality: 2 tests
+
 ### Week 2 Completed - 2026-02-17
 
 #### Added
