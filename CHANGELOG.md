@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-17
+
+### Week 4 Completed - 2026-02-17
+
+#### Added
+
+- Comprehensive documentation system
+  - Installation, usage, configuration, troubleshooting guides
+  - Sessions, context loading, code execution documentation
+  - Safety and security documentation
+  - Example configurations and workflows
+- Enhanced CLI
+  - `--version` flag to display version information
+  - Improved `--help` output with detailed descriptions
+  - Better error messages and user guidance
+- Complete README overhaul
+  - "Why ollama-sgpt?" section highlighting privacy focus
+  - Feature comparison table with ShellGPT
+  - Architecture diagram
+  - Comprehensive usage examples
+  - Development guide with commands
+  - Project statistics (107 tests, >85% coverage, ~2,550 LOC)
+
 ### Week 3 Completed - 2026-02-17
 
 #### Added
@@ -71,23 +94,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
-- Safe code execution with confirmation prompts
-- Enhanced CLI with click framework
-- More role templates
-- Configuration file improvements
+- Command history logging and audit trail
+- Plugin system for extensibility
+- Configuration profiles
+- Shell integration helpers
+- Performance optimizations
 
 ### Changed
 
-- Improved CLI argument parsing
+- Improved CLI argument parsing and validation
 - Better error messages and user feedback
 - Enhanced streaming output with rich formatting
+- Updated documentation structure
 
 ### Fixed
 
-- Connection timeout issues
-- History persistence bugs
-- Stream parsing errors
-- Version inconsistency between **init**.py and pyproject.toml
+- Version inconsistency between __init__.py and pyproject.toml
 
 ## [0.1.0] - 2026-01-11
 
@@ -102,5 +124,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - One-shot command mode
 - Stdin support
 
-[Unreleased]: https://github.com/sadorect/ollama-sgpt/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sadorect/ollama-sgpt/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sadorect/ollama-sgpt/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sadorect/ollama-sgpt/releases/tag/v0.1.0
