@@ -13,6 +13,7 @@ from .session import SessionManager
 from .context import load_context_files, build_context_prompt, format_context_summary, validate_context_files
 from .repl import interactive_loop_enhanced
 from .executor import CodeExecutor
+from . import __version__
 
 console = Console()
 
@@ -110,32 +111,69 @@ def execute_chat(user_input, history, config, role):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="ShellGPT-style CLI for Ollama")
-    parser.add_argument("prompt", nargs="?")
-    parser.add_argument("--shell", action="store_true")
-    parser.add_argument("--code", action="store_true")
-    parser.add_argument("--explain", action="store_true")
-    parser.add_argument("--model")
-    parser.add_argument("--no-stream", action="store_true")
+        prog="ollama-sgpt",
+        description="AI-powered shell assistant using Ollama",
+        epilog="Examples:\n"
+               "  %(prog)s 'how do I find large files?'\n"
+               "  %(prog)s --shell 'compress all logs'\n"
+               "  %(prog)s --code 'write a sorting function'\n"
+               "  %(prog)s --session myproject 'continue discussion'\n"
+               "  %(prog)s --context file.py 'review this code'\n"
+               "  %(prog)s --shell --execute 'show disk usage'\n\n"
+               "Documentation: https://github.com/sadorect/ollama-sgpt",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+
+    parser.add_argument("--version", "-v", action="version",
+                        version=f"%(prog)s {__version__}")
+
+    parser.add_argument("prompt", nargs="?",
+                        help="your question or request (omit for interactive mode)")
+
+    # Role/Mode selection
+    mode_group = parser.add_argument_group("modes",
+                                           "specialized prompting modes")
+    mode_group.add_argument("--shell", action="store_true",
+                            help="shell command mode - get executable commands")
+    mode_group.add_argument("--code", action="store_true",
+                            help="code generation mode - for programming tasks")
+    mode_group.add_argument("--explain", action="store_true",
+                            help="explanation mode - detailed explanations")
+
+    # Model configuration
+    config_group = parser.add_argument_group("configuration",
+                                             "model and output settings")
+    config_group.add_argument("--model", metavar="NAME",
+                              help="ollama model to use (default: from config)")
+    config_group.add_argument("--no-stream", action="store_true",
+                              help="disable streaming output")
 
     # Session management
-    parser.add_argument("--session", "-s",
-                        help="Session name to use or create")
-    parser.add_argument("--list-sessions",
-                        action="store_true", help="List all sessions")
-    parser.add_argument("--delete-session", help="Delete a session")
+    session_group = parser.add_argument_group("session management",
+                                              "maintain conversation history")
+    session_group.add_argument("--session", "-s", metavar="NAME",
+                               help="use or create a named session")
+    session_group.add_argument("--list-sessions", action="store_true",
+                               help="list all available sessions")
+    session_group.add_argument("--delete-session", metavar="NAME",
+                               help="delete a specific session")
 
     # Context loading
-    parser.add_argument("--context", "-c", action="append",
-                        help="Load context from file(s)")
+    context_group = parser.add_argument_group("context",
+                                              "include file contents in prompts")
+    context_group.add_argument("--context", "-c", action="append",
+                               metavar="FILE",
+                               help="load context from file(s) - can be used multiple times")
 
     # Code execution
-    parser.add_argument("--execute", "-e", action="store_true",
-                        help="Execute generated commands (use with --shell)")
-    parser.add_argument("--yes", "-y", action="store_true",
-                        help="Auto-confirm command execution (DANGEROUS!)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show commands without executing")
+    exec_group = parser.add_argument_group("code execution",
+                                           "safely execute AI-generated commands")
+    exec_group.add_argument("--execute", "-e", action="store_true",
+                            help="enable command execution (requires --shell)")
+    exec_group.add_argument("--yes", "-y", action="store_true",
+                            help="auto-confirm LOW/MEDIUM risk commands (use carefully!)")
+    exec_group.add_argument("--dry-run", action="store_true",
+                            help="preview commands without executing")
 
     args = parser.parse_args()
     config = load_config()
@@ -163,17 +201,35 @@ def main():
         check_ollama_health(config["ollama_url"])
         validate_model(config["ollama_url"], config["model"])
     except OllamaConnectionError as e:
-        console.print(f"[bold red]Error:[/] {e}")
-        console.print("\n[yellow]Troubleshooting:[/]")
-        console.print("1. Make sure Ollama is installed: https://ollama.ai")
-        console.print("2. Start Ollama server: ollama serve")
-        console.print(
-            "3. Check server is running: curl http://localhost:11434/api/version")
+        console.print(f"\n[bold red]❌ Connection Error:[/bold red] {e}\n")
+        console.print("[bold yellow]Troubleshooting Steps:[/bold yellow]")
+        console.print("  1. [cyan]Check if Ollama is installed:[/cyan]")
+        console.print("     Visit https://ollama.ai/download")
+        console.print()
+        console.print("  2. [cyan]Start the Ollama service:[/cyan]")
+        console.print("     [dim]$[/dim] ollama serve")
+        console.print()
+        console.print("  3. [cyan]Verify Ollama is running:[/cyan]")
+        console.print("     [dim]$[/dim] curl http://localhost:11434/api/version")
+        console.print()
+        console.print("  4. [cyan]List available models:[/cyan]")
+        console.print("     [dim]$[/dim] ollama list")
+        console.print()
+        console.print("[dim]Need help?[/dim] See [link=https://github.com/sadorect/ollama-sgpt/blob/main/docs/troubleshooting.md]troubleshooting guide[/link]")
         sys.exit(1)
     except OllamaModelError as e:
-        console.print(f"[bold red]Error:[/] {e}")
-        console.print(
-            f"\n[yellow]To download the model:[/] ollama pull {config['model']}")
+        console.print(f"\n[bold red]❌ Model Error:[/bold red] {e}\n")
+        console.print("[bold yellow]Fix:[/bold yellow]")
+        console.print(f"  Download the model with:")
+        console.print(f"  [dim]$[/dim] [cyan]ollama pull {config['model']}[/cyan]")
+        console.print()
+        console.print("[bold]Popular Models:[/bold]")
+        console.print("  • [cyan]llama3[/cyan]      - Latest, best quality (5GB)")
+        console.print("  • [cyan]mistral[/cyan]     - Fast and versatile (4GB)")
+        console.print("  • [cyan]codellama[/cyan]   - Optimized for code (4GB)")
+        console.print("  • [cyan]llama2[/cyan]      - Reliable and stable (4GB)")
+        console.print()
+        console.print("[dim]View all models:[/dim] [cyan]ollama list[/cyan]")
         sys.exit(1)
 
     role = "default"
@@ -183,6 +239,19 @@ def main():
         role = "code"
     elif args.explain:
         role = "explain"
+
+    # Validate flag combinations
+    if (args.execute or args.yes or args.dry_run) and not args.shell:
+        console.print("\n[bold yellow]⚠️  Warning:[/bold yellow] Execution flags work best with --shell mode\n")
+        console.print("[dim]Did you mean:[/dim]")
+        console.print("  [cyan]ollama-sgpt --shell --execute 'your command'[/cyan]")
+        console.print()
+        if not args.prompt and not sys.stdin.isatty():
+            console.print("[yellow]Continuing without execution mode...[/yellow]\n")
+
+    if args.yes and not args.execute:
+        console.print("\n[bold yellow]💡 Tip:[/bold yellow] --yes flag requires --execute\n")
+        console.print("[dim]Use:[/dim] [cyan]--execute --yes[/cyan] to auto-confirm safe commands\n")
 
     stdin_input = None
     if not sys.stdin.isatty():

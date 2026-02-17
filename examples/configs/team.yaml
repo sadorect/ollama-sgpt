@@ -1,0 +1,40 @@
+# Team/Enterprise Configuration Example
+# Shared configuration for development teams
+
+# Standardize on one model for consistency
+model: llama3
+
+# Central Ollama server (GPU-enabled)
+# Replace with your organization's AI server
+ollama_url: http://ai-server.company.com:11434/api/chat
+
+# Each user has their own history
+history_file: ~/.ollama_sgpt_history.json
+
+# Enable streaming
+stream: true
+
+# Deployment Instructions:
+#
+# Server Setup (IT Admin):
+# 1. Deploy Ollama on GPU server
+# 2. Pull required models:
+#    ollama pull llama3
+#    ollama pull codellama
+#    ollama pull mistral
+# 3. Configure firewall
+# 4. Set up monitoring
+#
+# Developer Setup:
+# 1. Copy this config to ~/.ollama_sgpt.yaml
+# 2. Update ollama_url with your server address
+# 3. Test connection:
+#    ollama-sgpt "hello world"
+#
+# Best Practices:
+# - Use sessions for project-specific work:
+#   ollama-sgpt -s project-x "query"
+# - Leverage context for code review:
+#   ollama-sgpt --context file.py "review this"
+# - Share session files for collaboration:
+#   cp ~/.ollama_sgpt_sessions/review.json /shared/

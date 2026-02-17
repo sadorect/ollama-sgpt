@@ -1,0 +1,31 @@
+# Remote Server Configuration Example
+# For using Ollama running on a remote machine
+
+# Use a balanced model
+model: llama3
+
+# Point to remote Ollama server
+# Replace with your server's IP address or hostname
+ollama_url: http://192.168.1.100:11434/api/chat
+
+# Keep history local
+history_file: ~/.ollama_sgpt_history.json
+
+# Enable streaming (requires stable network)
+stream: true
+
+# Setup Instructions:
+# 1. Ensure Ollama is running on remote server:
+#    ssh user@192.168.1.100 'ollama serve'
+#
+# 2. Configure firewall on remote server:
+#    sudo ufw allow 11434/tcp
+#
+# 3. Test connection:
+#    curl http://192.168.1.100:11434/api/tags
+#
+# 4. Copy this config:
+#    cp examples/configs/remote.yaml ~/.ollama_sgpt.yaml
+#
+# 5. Test:
+#    ollama-sgpt "hello"

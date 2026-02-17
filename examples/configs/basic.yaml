@@ -1,0 +1,21 @@
+# Basic Configuration Example
+# Copy this to ~/.ollama_sgpt.yaml to use
+
+# Default model for all queries
+# Options: llama2, llama3, mistral, codellama, mixtral, etc.
+# Use 'ollama list' to see available models
+model: llama3
+
+# Ollama API endpoint
+# Default: http://localhost:11434/api/chat
+# For remote server: http://192.168.1.100:11434/api/chat
+ollama_url: http://localhost:11434/api/chat
+
+# Location to store conversation history
+# Default: ~/.ollama_sgpt_history.json
+history_file: ~/.ollama_sgpt_history.json
+
+# Enable streaming responses (recommended)
+# true: See responses as they're generated
+# false: Wait for full response
+stream: true

@@ -1,0 +1,19 @@
+# Developer Configuration Example
+# Optimized for software development tasks
+
+# Use CodeLlama for better code generation
+model: codellama
+
+# Local Ollama instance
+ollama_url: http://localhost:11434/api/chat
+
+# Store history in project directory
+# This keeps dev conversations separate from personal use
+history_file: ~/dev/.ollama_sgpt_history.json
+
+# Enable streaming for better UX during development
+stream: true
+
+# Note: You can override any of these at runtime:
+# - Use different model: ollama-sgpt --model mistral "query"
+# - Different URL: export OLLAMA_URL=http://other-server:11434

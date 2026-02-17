@@ -1,0 +1,29 @@
+# Performance-Optimized Configuration
+# For fast responses and low latency
+
+# Mistral is fast and lightweight
+model: mistral
+
+# Local instance for lowest latency
+ollama_url: http://localhost:11434/api/chat
+
+# Standard history location
+history_file: ~/.ollama_sgpt_history.json
+
+# Keep streaming enabled
+# Streaming actually feels faster due to immediate feedback
+stream: true
+
+# Tips for maximum performance:
+# 1. Use smaller models (mistral, llama2:7b)
+# 2. Keep Ollama on same machine (localhost)
+# 3. Close unnecessary applications
+# 4. Use SSD for faster model loading
+# 5. Consider GPU acceleration if available
+#
+# Model sizes:
+# - mistral:7b    ~4GB RAM   (fastest)
+# - llama2:7b     ~4GB RAM   (fast)
+# - llama3:8b     ~5GB RAM   (balanced)
+# - codellama:7b  ~4GB RAM   (fast, code-focused)
+# - llama2:70b    ~40GB RAM  (slow but high quality)

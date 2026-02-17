@@ -69,15 +69,31 @@ def interactive_loop_enhanced(
     history_file = Path.home() / ".ollama-sgpt" / "repl_history"
     session = create_repl_session(history_file)
 
-    console.print("\n[bold green]ollama-sgpt Interactive Mode[/bold green]")
-    console.print("[dim]Multi-line input: Press Esc+Enter to submit[/dim]")
-    console.print("[dim]Commands: /help, /clear, /history, /exit[/dim]")
+    # Enhanced welcome message
+    console.print("\n[bold green]✨ ollama-sgpt Interactive Mode[/bold green]")
+    console.print(f"[dim]Model: {config['model']}[/dim]")
+
+    if session_name:
+        console.print(f"[dim]Session: {session_name}[/dim]")
+
+    console.print()
+    console.print("[bold cyan]Getting Started:[/bold cyan]")
+    console.print("  • Type your question or request")
+    console.print("  • Press [bold]Esc+Enter[/bold] for multi-line input")
+    console.print("  • Type [bold]/help[/bold] to see available commands")
+    console.print(
+        "  • Type [bold]/exit[/bold] or press [bold]Ctrl+D[/bold] to quit")
+    console.print()
 
     if executor:
         mode = "DRY RUN" if dry_run else "EXECUTION"
-        console.print(f"[yellow]Command {mode} enabled[/yellow]")
-
-    console.print()
+        risk_info = "[dim](HIGH/CRITICAL commands require manual confirmation)[/dim]" if not dry_run else ""
+        console.print(f"[yellow]⚡ Command {mode} enabled {risk_info}[/yellow]")
+        console.print()
+    elif role == "shell":
+        console.print(
+            "[dim]💡 Tip: Add --execute flag to run generated commands[/dim]")
+        console.print()
 
     conversation_history = []
 

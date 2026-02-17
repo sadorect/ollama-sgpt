@@ -1,0 +1,46 @@
+# Custom Model Configuration
+# For using specific model versions or custom models
+
+# Use specific model version
+# Format: model:tag or model:size
+model: llama2:13b
+
+# Local Ollama
+ollama_url: http://localhost:11434/api/chat
+
+# History file
+history_file: ~/.ollama_sgpt_history.json
+
+# Streaming
+stream: true
+
+# Available Model Variations:
+#
+# Llama 2:
+# - llama2:7b       - 3.8GB  - Fast, good quality
+# - llama2:13b      - 7.3GB  - Better quality
+# - llama2:70b      - 38GB   - Best quality, slow
+#
+# Llama 3:
+# - llama3:8b       - 4.7GB  - Latest, improved
+# - llama3:70b      - 40GB   - Best available
+#
+# Code-specialized:
+# - codellama:7b    - 3.8GB  - Code generation
+# - codellama:13b   - 7.3GB  - Better code quality
+# - codellama:34b   - 19GB   - Professional code
+#
+# Other models:
+# - mistral:7b      - 4.1GB  - Fast, versatile
+# - mixtral:8x7b    - 26GB   - High quality
+# - neural-chat:7b  - 4.1GB  - Conversational
+#
+# Installing models:
+# ollama pull llama2:13b
+# ollama pull codellama:34b
+#
+# List installed models:
+# ollama list
+#
+# Remove unused models:
+# ollama rm llama2:70b
