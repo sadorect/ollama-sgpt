@@ -1,46 +1,40 @@
 # Usage Guide
 
-Complete guide to using **ollama-sgpt** - your AI-powered shell assistant.
+This guide describes the current CLI behavior of **ollama-sgpt**.
 
 ---
 
-## Table of Contents
+## Basic Commands
 
-- [Basic Usage](#basic-usage)
-- [Modes](#modes)
-- [Role-Based Prompting](#role-based-prompting)
-- [Session Management](#session-management)
-- [Context Loading](#context-loading)
-- [Code Execution](#code-execution)
-- [Interactive Mode](#interactive-mode)
-- [Advanced Usage](#advanced-usage)
-
----
-
-## Basic Usage
-
-### Simple Query
+### One-Shot Query
 
 ```bash
-ollama-sgpt "how do I list files in Linux?"
+ollama-sgpt "explain Docker containers"
 ```
 
-### With Custom Model
+### Interactive Chat
 
 ```bash
-ollama-sgpt "explain Docker containers" --model mistral
+ollama-sgpt
 ```
 
-### Pipe Input
+### Use A Specific Model
 
 ```bash
-cat error.log | ollama-sgpt "explain this error"
+ollama-sgpt --model mistral "summarize this error"
 ```
 
 ### Disable Streaming
 
 ```bash
-ollama-sgpt "what is Python?" --no-stream
+ollama-sgpt --no-stream "what is Python?"
+```
+
+### First-Time Setup
+
+```bash
+ollama-sgpt --init
+ollama-sgpt --doctor
 ```
 
 ---
@@ -49,7 +43,7 @@ ollama-sgpt "what is Python?" --no-stream
 
 ### Default Mode
 
-General conversational AI:
+General assistant behavior:
 
 ```bash
 ollama-sgpt "what is the capital of France?"
@@ -57,19 +51,29 @@ ollama-sgpt "what is the capital of France?"
 
 ### Shell Mode
 
-Get shell commands for tasks:
+Generate a command for the configured shell family:
 
 ```bash
-ollama-sgpt --shell "find all Python files"
-# Output: find . -name "*.py"
+ollama-sgpt --shell "list all Python files recursively"
+```
 
-ollama-sgpt --shell "compress this directory"
-# Output: tar -czf directory.tar.gz directory/
+For plain stdout suitable for piping:
+
+```bash
+ollama-sgpt --shell --stdout-only "list all Python files recursively"
+```
+
+### Describe A Shell Command
+
+Explain a shell command in plain language:
+
+```bash
+ollama-sgpt --describe-shell "Get-ChildItem -Recurse -Filter *.py"
 ```
 
 ### Code Mode
 
-Get code examples and explanations:
+Generate code only:
 
 ```bash
 ollama-sgpt --code "write a Python function to reverse a string"
@@ -77,417 +81,442 @@ ollama-sgpt --code "write a Python function to reverse a string"
 
 ### Explain Mode
 
-Explain concepts clearly:
+Explain a command or concept:
 
 ```bash
-ollama-sgpt --explain "what is recursion?"
+ollama-sgpt --explain "docker run -it ubuntu bash"
 ```
 
 ---
 
-## Role-Based Prompting
+## Supported Shells
 
-Different roles provide specialized system prompts:
+`--shell` behavior depends on the configured `shell` value in `~/.ollama_sgpt.yaml`.
 
-| Flag        | Purpose              | Example                     |
-| ----------- | -------------------- | --------------------------- |
-| `--shell`   | Shell commands       | "create a backup directory" |
-| `--code`    | Code generation      | "write a sorting algorithm" |
-| `--explain` | Clear explanations   | "explain binary search"     |
-| _(none)_    | General conversation | "tell me a joke"            |
+| Shell | Status | How it is selected | Notes |
+| --- | --- | --- | --- |
+| `bash` | Supported | Default on Linux/macOS or `shell: bash` | Best-tested path for Unix-like systems |
+| `powershell` | Supported | Default on Windows or `shell: powershell` | Recommended Windows shell family |
+| `cmd` | Supported | `shell: cmd` in config | Supported for command generation and extraction; use when you want `cmd.exe` syntax |
+
+Important notes:
+
+- There is no dedicated `--shell-type` flag today.
+- Shell selection is config-driven.
+- `--shell` is intended to return command-only output for the configured shell.
+- `--stdout-only` is intended for pipe-friendly shell output without Rich formatting.
+- Live streamed assistant replies are rendered once as they arrive and are not reprinted after the stream completes.
+
+Example config:
+
+```yaml
+model: llama3
+shell: powershell
+```
+
+---
+
+## Role Behavior
+
+| Mode | Purpose | Typical output |
+| --- | --- | --- |
+| default | General assistant | conversational response |
+| `--shell` | Command generation | one executable command |
+| `--code` | Code generation | code-only response |
+| `--explain` | Explanations | prose explanation |
+
+---
+
+## Setup And Diagnostics
+
+Prepare local config and state directories:
+
+```bash
+ollama-sgpt --init
+```
+
+Run a local readiness check:
+
+```bash
+ollama-sgpt --doctor
+```
+
+Important notes:
+
+- `--init` creates `~/.ollama_sgpt.yaml` if it does not already exist
+- `--init` also ensures the local sessions, roles, and cache directories exist
+- `--doctor` reports the current config path, shell, endpoint, model, and local state directories
+- `--doctor` checks whether the `ollama` CLI is on `PATH`, whether the API endpoint is reachable, and whether the configured model is installed
+- `--doctor` exits with a nonzero status when blocking setup issues are found
+
+---
+
+## Custom Prompt Roles
+
+Save a reusable local role:
+
+```bash
+ollama-sgpt --save-role reviewer --role-prompt "You are a meticulous code reviewer."
+```
+
+List available roles:
+
+```bash
+ollama-sgpt --list-roles
+```
+
+Show a built-in or saved role:
+
+```bash
+ollama-sgpt --show-role reviewer
+ollama-sgpt --show-role shell
+```
+
+Use a saved custom role:
+
+```bash
+ollama-sgpt --role reviewer "review this patch"
+```
+
+Delete a saved custom role:
+
+```bash
+ollama-sgpt --delete-role reviewer
+```
+
+Important notes:
+
+- saved custom roles are stored under `~/.ollama-sgpt/roles/`
+- `--role NAME` is for saved custom roles only
+- built-in shell/code/explain behavior still uses the dedicated mode flags
+- custom roles can be combined with sessions and context loading
+- `--delete-role NAME` only removes saved custom roles; built-in roles cannot be deleted
+
+---
+
+## Local Response Cache
+
+Cache a one-shot response locally:
+
+```bash
+ollama-sgpt --cache "summarize this error"
+```
+
+Inspect or clear the cache:
+
+```bash
+ollama-sgpt --show-cache
+ollama-sgpt --clear-cache
+```
+
+Important notes:
+
+- caching is opt-in and local-only
+- cached entries are stored under `~/.ollama-sgpt/cache/`
+- cache hits can be served without contacting Ollama
+- `--cache` currently supports one-shot requests only
+- cached responses are not used with `--execute` or `--dry-run`
+
+---
+
+## Constrained Local Tools
+
+Enable tools in config:
+
+```yaml
+tools_enabled: true
+```
+
+Then run a tool-assisted prompt:
+
+```bash
+ollama-sgpt --tools "inspect the current git repo and summarize its status"
+```
+
+Current tool set:
+
+- `list_files`
+- `read_file`
+- `git_status`
+- `git_log`
+- `system_info`
+- `list_processes`
+
+Important notes:
+
+- tool mode is opt-in and currently supports one-shot requests only
+- the current tool set is read-only
+- tool usage is printed during the run and recorded in saved sessions
+- `--tools` does not bypass the existing shell execution safeguards because it does not expose direct execution tools
 
 ---
 
 ## Session Management
 
-### Create/Use a Session
+### Create Or Reuse A Session
 
 ```bash
-# Create or use existing session
 ollama-sgpt --session myproject "how do I use git?"
+```
 
-# Continue the conversation
+### Continue A Session
+
+```bash
 ollama-sgpt --session myproject "show me an example"
 ```
 
-### List All Sessions
+### List Sessions
 
 ```bash
 ollama-sgpt --list-sessions
 ```
 
-**Output:**
+### Show A Saved Session
 
-```
-┌─────────────┬─────────────────────┬─────────────────────┬──────────┐
-│ Name        │ Created             │ Modified            │ Messages │
-├─────────────┼─────────────────────┼─────────────────────┼──────────┤
-│ myproject   │ 2026-02-17 10:30:00 │ 2026-02-17 11:45:00 │       12 │
-│ work        │ 2026-02-16 09:15:00 │ 2026-02-17 08:20:00 │       28 │
-└─────────────┴─────────────────────┴─────────────────────┴──────────┘
+```bash
+ollama-sgpt --show-session myproject
 ```
 
-### Delete a Session
+### Export A Saved Session
+
+```bash
+ollama-sgpt --export-session myproject --output transcript.md
+```
+
+### Delete A Session
 
 ```bash
 ollama-sgpt --delete-session myproject
 ```
 
-**Use Cases for Sessions:**
+### Set A Default Session
 
-- Per-project conversations
-- Different topics/contexts
-- Maintaining conversation history
-- Isolating work contexts
+```bash
+ollama-sgpt --default-session work
+```
+
+After that:
+
+```bash
+ollama-sgpt "continue where we left off"
+```
+
+Sessions are stored in:
+
+```text
+~/.ollama-sgpt/sessions/
+```
+
+Additional session notes:
+
+- starting the REPL with `--session NAME` now preloads that session's prior messages
+- `--show-session` prints a saved transcript without contacting Ollama
+- `--export-session` writes a saved transcript to `.md`, `.txt`, or `.json`
+- `--session temp` creates an in-memory scratch session that is not persisted
 
 ---
 
 ## Context Loading
 
-### Load Context from Files
+Load file contents into the prompt:
 
 ```bash
-# Single file
 ollama-sgpt --context app.py "explain this code"
-
-# Multiple files
-ollama-sgpt --context main.py --context utils.py "review this code"
-
-# With session
-ollama-sgpt --session review --context src/*.py "find bugs"
 ```
 
-**Example with Context:**
+Multiple files:
 
 ```bash
-$ ollama-sgpt --context config.yaml "what is the database host?"
-
-Loaded 1 context file(s):
-  1. config.yaml (256 bytes)
-
-AI Response: According to the configuration file, the database
-host is set to "localhost" on port 5432...
+ollama-sgpt --context main.py --context utils.py "review this code"
 ```
 
-**When to Use Context:**
+With a session:
 
-- Code review
-- Documentation generation
-- Configuration analysis
-- Multi-file queries
+```bash
+ollama-sgpt --session review --context src/handler.js "suggest improvements"
+```
+
+Use context for:
+
+- code review
+- configuration analysis
+- bug triage
+- documentation help
 
 ---
 
-## Code Execution
+## Command Execution
 
-### Enable Execution
+Execution only makes sense with `--shell`.
+
+### Preview And Execute
 
 ```bash
-# Preview and execute
-ollama-sgpt --shell --execute "list all log files"
+ollama-sgpt --shell --execute "show disk usage"
+```
 
-# With auto-confirm (safe commands only)
+### Dry Run
+
+```bash
+ollama-sgpt --shell --dry-run "delete old log files"
+```
+
+### Auto-Confirm Safe Commands
+
+```bash
 ollama-sgpt --shell --execute --yes "create backup directory"
-
-# Dry-run (preview only)
-ollama-sgpt --shell --dry-run "delete old logs"
 ```
 
-### Execution Example
+Execution notes:
+
+- `--yes` only auto-confirms LOW and MEDIUM risk commands
+- HIGH and CRITICAL commands still require manual confirmation
+- the generated command is analyzed before execution
+- `--stdout-only` is generation-only and cannot be combined with execution flags
+
+See [Execution Safety Guide](execution.md) for full details.
+
+---
+
+## Shell Integration Helpers
+
+Print an opt-in helper snippet for your shell:
 
 ```bash
-$ ollama-sgpt --shell --execute "show disk usage"
-
-AI: You can use `df -h` to show disk usage in human-readable format.
-
-┌─ Command Preview [LOW] ─────────────┐
-│ df -h                                │
-└──────────────────────────────────────┘
-
-Execute this command? [Y/n]: y
-
-Executing...
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1       100G   60G   40G  60% /
-/dev/sda2       500G  120G  380G  25% /home
-
-✓ Command completed successfully in 0.05s
+ollama-sgpt --shell-integration bash
+ollama-sgpt --shell-integration zsh
+ollama-sgpt --shell-integration powershell
 ```
 
-### Safety Levels
+Notes:
 
-| Risk         | Confirmation            | Examples                        |
-| ------------ | ----------------------- | ------------------------------- |
-| **LOW**      | Y/n (default yes)       | `ls`, `cat`, `grep`, `pwd`      |
-| **MEDIUM**   | y/N (default no)        | `mv`, `cp -r`, `apt install`    |
-| **HIGH**     | Type "yes"              | `rm -f`, `killall`, `chmod 777` |
-| **CRITICAL** | Type "yes I understand" | `rm -rf`, `dd`, `mkfs`          |
-
-**Important:**
-
-- `--yes` flag only auto-confirms LOW and MEDIUM risk
-- HIGH and CRITICAL always require manual confirmation
-- See [Execution Safety Guide](execution.md) for details
+- the snippets call back into `ollama-sgpt`; they do not bypass the execution guardrails
+- `bash`, `zsh`, and PowerShell helper output is supported
+- `cmd` remains supported for shell generation, but no dedicated shell helper snippet is provided
 
 ---
 
 ## Interactive Mode
 
-### Start Interactive Session
+Start an interactive session:
 
 ```bash
-# Basic interactive mode
 ollama-sgpt
+```
 
-# With session persistence
+With a session:
+
+```bash
 ollama-sgpt --session work
+```
 
-# With code execution
+With an in-memory scratch session:
+
+```bash
+ollama-sgpt --session temp
+```
+
+With command execution:
+
+```bash
 ollama-sgpt --shell --execute
 ```
 
-### Special Commands
+Special commands:
 
-In interactive mode, use these commands:
+| Command | Meaning |
+| --- | --- |
+| `/help` | show REPL help |
+| `/clear` | clear current history |
+| `/history` | show conversation history |
+| `/exit` or `/quit` | leave the REPL |
 
-| Command            | Purpose                    |
-| ------------------ | -------------------------- |
-| `/help`            | Show help                  |
-| `/clear`           | Clear conversation history |
-| `/history`         | Show all messages          |
-| `/exit` or `/quit` | Exit REPL                  |
-
-### Multi-line Input
-
-Press **Esc+Enter** to submit multi-line input:
-
-```
->>> def fibonacci(n):
-... |    if n <= 1:
-... |        return n
-... |    return fibonacci(n-1) + fibonacci(n-2)
-... [Press Esc+Enter]
-```
-
-### Interactive Example
-
-```bash
-$ ollama-sgpt --shell --execute --session devops
-
-ollama-sgpt Interactive Mode
-Multi-line input: Press Esc+Enter to submit
-Commands: /help, /clear, /history, /exit
-Command EXECUTION enabled
-
->>> find all Python files larger than 1MB
-
-AI: You can use find with size parameter...
-
-┌─ Command Preview [LOW] ─┐
-│ find . -name "*.py" -size +1M │
-└──────────────────────────────┘
-
-Execute? [Y/n]: y
-./large_model.py
-./data_processor.py
-
->>> compress those files
-
-AI: You can use tar to compress them...
-[continues conversation with context]
-```
+Multi-line input is submitted with `Esc+Enter`.
 
 ---
 
-## Advanced Usage
+## Practical Workflows
 
-### Combining Features
-
-```bash
-# Session + Context + Execution
-ollama-sgpt --session audit \
-  --context server.log \
-  --context access.log \
-  --shell --execute \
-  "analyze these logs and show errors"
-
-# Multiple contexts with specific model
-ollama-sgpt --context *.py \
-  --model codellama \
-  --code \
-  "find security vulnerabilities"
-```
-
-### Environment Variables
+### Development
 
 ```bash
-# Set default model
-export OLLAMA_MODEL=mistral
-
-# Set Ollama URL
-export OLLAMA_URL=http://remote-server:11434
-
-ollama-sgpt "hello"
-```
-
-### Scripting
-
-```bash
-#!/bin/bash
-# Automated code review script
-
-for file in src/*.py; do
-  echo "Reviewing $file..."
-  ollama-sgpt --context "$file" \
-    --session code-review \
-    "analyze this file for issues" \
-    >> review-report.md
-done
-```
-
-### Output Redirection
-
-```bash
-# Save output
-ollama-sgpt "explain Docker" > explanation.md
-
-# Append to file
-ollama-sgpt "what is Kubernetes" >> k8s-guide.md
-
-# Process output
-ollama-sgpt --shell "list files" | grep ".py"
-```
-
----
-
-## Common Workflows
-
-### Development Workflow
-
-```bash
-# Start session for project
-ollama-sgpt --session myapp
-
-# Get command suggestions
-ollama-sgpt --shell "run tests with coverage"
-
-# Code generation
-ollama-sgpt --code "write unit tests for user authentication"
-
-# Code review
+ollama-sgpt --session myapp "how should I structure this package?"
+ollama-sgpt --code "write tests for a login validator"
 ollama-sgpt --context app.py "suggest improvements"
 ```
 
-### System Administration
+### Systems Work
 
 ```bash
-# Diagnose issues
-cat /var/log/syslog | ollama-sgpt "find critical errors"
-
-# Get fix commands
-ollama-sgpt --shell --execute "check disk space"
-
-# Configuration help
-ollama-sgpt --context nginx.conf "explain this configuration"
+ollama-sgpt --shell "find the largest files in this directory"
+ollama-sgpt --shell --dry-run "delete .log files older than 30 days"
 ```
 
-### Data Analysis
+### Code Review
 
 ```bash
-# Analyze data
-ollama-sgpt --context data.csv "what are the trends?"
-
-# Generate scripts
-ollama-sgpt --code "write Python script to clean this CSV"
-
-# Execute analysis
-ollama-sgpt --execute "analyze log patterns"
+ollama-sgpt --session review --context src/main.py "find likely bugs"
 ```
 
 ---
 
-## Tips & Best Practices
+## Current Configuration Surface
 
-### 1. Use Specific Prompts
+The runtime currently supports configuration through:
 
-❌ Bad: "help with files"
-✅ Good: "how do I find all Python files modified in the last week?"
+- CLI flags
+- `~/.ollama_sgpt.yaml`
 
-### 2. Leverage Sessions
+Environment variable overrides are not part of the current implementation.
 
-Keep related conversations together:
+Useful config fields:
 
-```bash
-ollama-sgpt --session project-x "initial question"
-ollama-sgpt --session project-x "follow-up question"
+```yaml
+model: llama3
+stream: true
+shell: bash
+default_session: null
+request_timeout: 120
+stream_idle_timeout: 60
 ```
 
-### 3. Review Before Executing
+See [Configuration Guide](configuration.md) for the full option list.
 
-Always review commands before execution:
+---
+
+## Tips
+
+### Be Specific
+
+Better prompt:
+
+```text
+find all Python files modified in the last week
+```
+
+Worse prompt:
+
+```text
+help with files
+```
+
+### Use Dry-Run First
 
 ```bash
-# Use dry-run first
 ollama-sgpt --shell --dry-run "delete old logs"
-
-# Then execute if safe
-ollama-sgpt --shell --execute "delete old logs"
 ```
 
-### 4. Use Context for Accuracy
+### Pick A Suitable Model
 
-Provide files for better responses:
-
-```bash
-ollama-sgpt --context error.log "diagnose this error"
-```
-
-### 5. Choose the Right Model
-
-- **llama2**: General purpose, balanced
-- **mistral**: Faster, good for quick queries
-- **codellama**: Best for code-related tasks
-
-```bash
-ollama-sgpt --model codellama --code "optimize this function"
-```
+- `llama3` for general use
+- `mistral` for faster responses
+- `codellama` for code-heavy work
 
 ---
 
-## Keyboard Shortcuts
-
-### Interactive Mode
-
-- **Ctrl+C**: Cancel current input
-- **Ctrl+D**: Exit (or type `/exit`)
-- **Esc+Enter**: Submit multi-line input
-- **Up/Down arrows**: Navigate command history
-- **Ctrl+A**: Beginning of line
-- **Ctrl+E**: End of line
-
----
-
-## Getting Help
-
-### CLI Help
-
-```bash
-ollama-sgpt --help
-```
-
-### Documentation
+## Related Documentation
 
 - [Installation Guide](installation.md)
 - [Configuration Guide](configuration.md)
-- [Session Guide](sessions.md)
-- [Execution Safety](execution.md)
+- [Execution Safety Guide](execution.md)
 - [Troubleshooting](troubleshooting.md)
-
-### Support
-
-- GitHub Issues: https://github.com/sadorect/ollama-sgpt/issues
-- Discussions: https://github.com/sadorect/ollama-sgpt/discussions
-
----
-
-**Happy prompting! 🚀**

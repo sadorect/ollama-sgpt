@@ -1,8 +1,6 @@
 """Tests for session management."""
 import json
 import pytest
-from pathlib import Path
-from datetime import datetime
 from ollama_sgpt.session import SessionManager
 from ollama_sgpt.exceptions import SessionError
 

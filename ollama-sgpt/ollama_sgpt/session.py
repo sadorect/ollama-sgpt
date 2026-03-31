@@ -1,7 +1,7 @@
 """Session management for ollama-sgpt."""
 import json
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 from datetime import datetime
 from .exceptions import SessionError
 
@@ -38,7 +38,8 @@ class SessionManager:
             "name": name,
             "created": datetime.now().isoformat(),
             "modified": datetime.now().isoformat(),
-            "messages": []
+            "messages": [],
+            "config": {}
         }
 
         with open(session_file, 'w') as f:
@@ -170,3 +171,32 @@ class SessionManager:
         data = self.load_session(name)
         data["messages"] = []
         self.save_session(name, data)
+
+    def get_config(self, name: str) -> Dict:
+        """Get session configuration.
+
+        Args:
+            name: Name of the session
+
+        Returns:
+            Session configuration dictionary
+        """
+        data = self.load_session(name)
+        return data.get("config", {})
+
+    def update_config(self, name: str, updates: Dict) -> Dict:
+        """Update session configuration.
+
+        Args:
+            name: Name of the session
+            updates: Configuration fields to update
+
+        Returns:
+            Updated session configuration
+        """
+        data = self.load_session(name)
+        config = data.get("config", {})
+        config.update(updates)
+        data["config"] = config
+        self.save_session(name, data)
+        return config

@@ -1,8 +1,6 @@
 """Tests for REPL functionality."""
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from prompt_toolkit import PromptSession
+from unittest.mock import Mock, patch
 from ollama_sgpt.repl import (
     create_repl_session,
     handle_special_command,
@@ -17,16 +15,23 @@ def history_file(tmp_path):
     return tmp_path / "repl_history"
 
 
-def test_create_repl_session(history_file):
+@patch('ollama_sgpt.repl.PromptSession')
+def test_create_repl_session(mock_prompt_session, history_file):
     """Test creating a REPL session."""
+    mock_session = Mock()
+    mock_prompt_session.return_value = mock_session
+
     session = create_repl_session(history_file)
 
-    assert isinstance(session, PromptSession)
+    assert session is mock_session
+    mock_prompt_session.assert_called_once()
     assert history_file.parent.exists()
 
 
-def test_create_repl_session_creates_parent_directory(tmp_path):
+@patch('ollama_sgpt.repl.PromptSession')
+def test_create_repl_session_creates_parent_directory(mock_prompt_session, tmp_path):
     """Test that parent directories are created."""
+    mock_prompt_session.return_value = Mock()
     nested_path = tmp_path / "deep" / "nested" / "path" / "history"
 
     assert not nested_path.parent.exists()
@@ -177,9 +182,9 @@ def test_interactive_loop_keyboard_interrupt(mock_console, mock_prompt_session):
     """Test handling keyboard interrupt in interactive loop."""
     from ollama_sgpt.repl import interactive_loop_enhanced
 
-    # Mock the session to raise KeyboardInterrupt
+    # Raise KeyboardInterrupt once, then EOF to let the loop exit.
     mock_session = Mock()
-    mock_session.prompt.side_effect = KeyboardInterrupt()
+    mock_session.prompt.side_effect = [KeyboardInterrupt(), EOFError()]
     mock_prompt_session.return_value = mock_session
 
     config = {"model": "llama2"}
@@ -213,12 +218,97 @@ def test_interactive_loop_eof(mock_console, mock_prompt_session):
     mock_console.print.assert_called()
 
 
-def test_repl_session_multiline_enabled(history_file):
+@patch('ollama_sgpt.repl.PromptSession')
+@patch('ollama_sgpt.repl.console')
+def test_interactive_loop_passes_prior_history_only_to_chat(mock_console, mock_prompt_session, tmp_path):
+    """Current user input should not be duplicated in the chat history payload."""
+    from ollama_sgpt.repl import interactive_loop_enhanced
+
+    mock_session = Mock()
+    mock_session.prompt.side_effect = ["find python files", EOFError()]
+    mock_prompt_session.return_value = mock_session
+
+    config = {"model": "llama3"}
+    chat_func = Mock(return_value='find . -name "*.py"')
+
+    with patch("ollama_sgpt.repl.Path.home", return_value=tmp_path):
+        interactive_loop_enhanced(config, "shell", chat_func)
+
+    args = chat_func.call_args.args
+    assert args[0] == "find python files"
+    assert args[1] == []
+    assert args[3] == "shell"
+
+
+@patch('ollama_sgpt.repl.PromptSession')
+@patch('ollama_sgpt.repl.console')
+def test_interactive_loop_executes_shell_command_with_executor(mock_console, mock_prompt_session, tmp_path):
+    """Shell REPL execution should route extracted commands through the executor."""
+    from ollama_sgpt.repl import interactive_loop_enhanced
+
+    mock_session = Mock()
+    mock_session.prompt.side_effect = ["scan subnet", EOFError()]
+    mock_prompt_session.return_value = mock_session
+
+    config = {"model": "llama3"}
+    chat_func = Mock(return_value='nmap -sn 192.168.1.0/24')
+    executor = Mock()
+    executor.extract_command_from_response.return_value = "nmap -sn 192.168.1.0/24"
+    executor.execute.return_value = Mock(success=True, stdout="hosts found")
+
+    with patch("ollama_sgpt.repl.Path.home", return_value=tmp_path):
+        interactive_loop_enhanced(
+            config,
+            "shell",
+            chat_func,
+            executor=executor,
+            dry_run=True,
+        )
+
+    executor.extract_command_from_response.assert_called_once_with('nmap -sn 192.168.1.0/24')
+    executor.execute.assert_called_once_with("nmap -sn 192.168.1.0/24", dry_run=True)
+
+
+@patch('ollama_sgpt.repl.PromptSession')
+@patch('ollama_sgpt.repl.console')
+def test_interactive_loop_preloads_initial_history(mock_console, mock_prompt_session, tmp_path):
+    """Initial session history should be passed to the next chat turn."""
+    from ollama_sgpt.repl import interactive_loop_enhanced
+
+    mock_session = Mock()
+    mock_session.prompt.side_effect = ["continue", EOFError()]
+    mock_prompt_session.return_value = mock_session
+
+    config = {"model": "llama3"}
+    chat_func = Mock(return_value="done")
+    initial_history = [
+        {"role": "user", "content": "earlier question"},
+        {"role": "assistant", "content": "earlier answer"},
+    ]
+
+    with patch("ollama_sgpt.repl.Path.home", return_value=tmp_path):
+        interactive_loop_enhanced(
+            config,
+            "default",
+            chat_func,
+            session_name="work",
+            initial_history=initial_history,
+        )
+
+    assert chat_func.call_args.args[1] == initial_history
+
+
+@patch('ollama_sgpt.repl.PromptSession')
+def test_repl_session_multiline_enabled(mock_prompt_session, history_file):
     """Test that REPL session has multiline enabled."""
+    mock_session = Mock()
+    mock_session.default_buffer.multiline = True
+    mock_prompt_session.return_value = mock_session
+
     session = create_repl_session(history_file)
 
     # Check that multiline is enabled
-    assert session.default_buffer.multiline is not None
+    assert session.default_buffer.multiline is True
 
 
 def test_handle_special_command_whitespace():

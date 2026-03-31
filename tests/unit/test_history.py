@@ -1,6 +1,5 @@
 """Unit tests for history module."""
 
-import pytest
 from ollama_sgpt.history import load_history, save_history
 
 

@@ -1,0 +1,284 @@
+{
+  "suite_name": "v0.3-shell-benchmark-suite",
+  "generated_at": "2026-03-31T17:13:58.345068+00:00",
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "ollama_url": "http://localhost:11434/api/chat"
+  },
+  "static": {
+    "command_extraction": {
+      "total_cases": 4,
+      "passed_cases": 4,
+      "accuracy": 1.0,
+      "cases": [
+        {
+          "id": "bash-inline-find",
+          "shell": "bash",
+          "expected_command": "find . -name \"*.py\"",
+          "actual_command": "find . -name \"*.py\"",
+          "passed": true
+        },
+        {
+          "id": "powershell-prompt-prefixed-block",
+          "shell": "powershell",
+          "expected_command": "Get-ChildItem -Recurse -Filter *.py",
+          "actual_command": "Get-ChildItem -Recurse -Filter *.py",
+          "passed": true
+        },
+        {
+          "id": "cmd-numbered-label",
+          "shell": "cmd",
+          "expected_command": "dir /s *.py",
+          "actual_command": "dir /s *.py",
+          "passed": true
+        },
+        {
+          "id": "bash-comment-stripping",
+          "shell": "bash",
+          "expected_command": "ls -la",
+          "actual_command": "ls -la",
+          "passed": true
+        }
+      ]
+    },
+    "safety_classification": {
+      "total_cases": 9,
+      "exact_matches": 9,
+      "accuracy": 1.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "cases": [
+        {
+          "id": "low-powershell-list",
+          "shell": "powershell",
+          "command": "Get-ChildItem -Name",
+          "expected_risk": "low",
+          "actual_risk": "low",
+          "warnings": [],
+          "passed": true
+        },
+        {
+          "id": "low-netsh-show",
+          "shell": "powershell",
+          "command": "netsh advfirewall show allprofiles",
+          "expected_risk": "low",
+          "actual_risk": "low",
+          "warnings": [],
+          "passed": true
+        },
+        {
+          "id": "medium-winget-install",
+          "shell": "powershell",
+          "command": "winget install Git.Git",
+          "expected_risk": "medium",
+          "actual_risk": "medium",
+          "warnings": [
+            "\u26a0\ufe0f  MEDIUM RISK: Installing packages"
+          ],
+          "passed": true
+        },
+        {
+          "id": "medium-invoke-webrequest",
+          "shell": "powershell",
+          "command": "Invoke-WebRequest https://example.com/tool.zip -OutFile tool.zip",
+          "expected_risk": "medium",
+          "actual_risk": "medium",
+          "warnings": [
+            "\u26a0\ufe0f  MEDIUM RISK: Network request"
+          ],
+          "passed": true
+        },
+        {
+          "id": "high-cmd-delete",
+          "shell": "cmd",
+          "command": "del *.tmp /s /q",
+          "expected_risk": "high",
+          "actual_risk": "high",
+          "warnings": [
+            "\u26a0\ufe0f  HIGH RISK: Recursive forced file deletion"
+          ],
+          "passed": true
+        },
+        {
+          "id": "high-stop-computer",
+          "shell": "powershell",
+          "command": "Stop-Computer -Force",
+          "expected_risk": "high",
+          "actual_risk": "high",
+          "warnings": [
+            "\u26a0\ufe0f  HIGH RISK: System power operations"
+          ],
+          "passed": true
+        },
+        {
+          "id": "high-reg-add",
+          "shell": "cmd",
+          "command": "reg add HKCU\\Software\\test /v demo /t REG_SZ /d value /f",
+          "expected_risk": "high",
+          "actual_risk": "high",
+          "warnings": [
+            "\u26a0\ufe0f  HIGH RISK: Registry modification"
+          ],
+          "passed": true
+        },
+        {
+          "id": "critical-remove-item-root",
+          "shell": "powershell",
+          "command": "Remove-Item -LiteralPath C:\\* -Recurse -Force",
+          "expected_risk": "critical",
+          "actual_risk": "critical",
+          "warnings": [
+            "\u26a0\ufe0f  CRITICAL: Recursive forced deletion under drive root"
+          ],
+          "passed": true
+        },
+        {
+          "id": "critical-format-drive",
+          "shell": "cmd",
+          "command": "format /Q E:",
+          "expected_risk": "critical",
+          "actual_risk": "critical",
+          "warnings": [
+            "\u26a0\ufe0f  CRITICAL: Disk format operation (data loss risk)"
+          ],
+          "passed": true
+        }
+      ]
+    }
+  },
+  "live_shell_generation": [
+    {
+      "class": "general-local",
+      "model": "gpt-oss:20b",
+      "status": "completed",
+      "total_cases": 6,
+      "passed_cases": 6,
+      "accuracy": 1.0,
+      "avg_latency_ms": 16021.79,
+      "p95_latency_ms": 28049.56,
+      "cases": [
+        {
+          "id": "bash-find-python",
+          "shell": "bash",
+          "prompt": "Use find to list all Python files recursively in the current directory.",
+          "response": "find . -type f -name \"*.py\"",
+          "command": "find . -type f -name \"*.py\"",
+          "passed": true,
+          "latency_ms": 22521.75
+        },
+        {
+          "id": "bash-df",
+          "shell": "bash",
+          "prompt": "Use df to show disk usage in human-readable form.",
+          "response": "df -h",
+          "command": "df -h",
+          "passed": true,
+          "latency_ms": 7216.01
+        },
+        {
+          "id": "powershell-find-python",
+          "shell": "powershell",
+          "prompt": "Use Get-ChildItem to list all Python files recursively in the current directory.",
+          "response": "Get-ChildItem -Recurse -File -Filter *.py",
+          "command": "Get-ChildItem -Recurse -File -Filter *.py",
+          "passed": true,
+          "latency_ms": 28049.56
+        },
+        {
+          "id": "powershell-ipconfig",
+          "shell": "powershell",
+          "prompt": "Use ipconfig to show the network configuration.",
+          "response": "ipconfig /all",
+          "command": "ipconfig /all",
+          "passed": true,
+          "latency_ms": 18340.45
+        },
+        {
+          "id": "cmd-find-python",
+          "shell": "cmd",
+          "prompt": "Use dir to list all Python files recursively in the current directory.",
+          "response": "dir /s /b *.py",
+          "command": "dir /s /b *.py",
+          "passed": true,
+          "latency_ms": 11915.47
+        },
+        {
+          "id": "cmd-ipconfig",
+          "shell": "cmd",
+          "prompt": "Use ipconfig to show the network configuration.",
+          "response": "ipconfig /all",
+          "command": "ipconfig /all",
+          "passed": true,
+          "latency_ms": 8087.48
+        }
+      ]
+    },
+    {
+      "class": "code-local",
+      "model": "qwen3-coder:30b",
+      "status": "completed",
+      "total_cases": 6,
+      "passed_cases": 6,
+      "accuracy": 1.0,
+      "avg_latency_ms": 3865.87,
+      "p95_latency_ms": 17080.41,
+      "cases": [
+        {
+          "id": "bash-find-python",
+          "shell": "bash",
+          "prompt": "Use find to list all Python files recursively in the current directory.",
+          "response": "find . -name \"*.py\" -type f",
+          "command": "find . -name \"*.py\" -type f",
+          "passed": true,
+          "latency_ms": 17080.41
+        },
+        {
+          "id": "bash-df",
+          "shell": "bash",
+          "prompt": "Use df to show disk usage in human-readable form.",
+          "response": "df -h",
+          "command": "df -h",
+          "passed": true,
+          "latency_ms": 834.9
+        },
+        {
+          "id": "powershell-find-python",
+          "shell": "powershell",
+          "prompt": "Use Get-ChildItem to list all Python files recursively in the current directory.",
+          "response": "Get-ChildItem -Recurse -Filter \"*.py\"",
+          "command": "Get-ChildItem -Recurse -Filter \"*.py\"",
+          "passed": true,
+          "latency_ms": 2348.78
+        },
+        {
+          "id": "powershell-ipconfig",
+          "shell": "powershell",
+          "prompt": "Use ipconfig to show the network configuration.",
+          "response": "ipconfig",
+          "command": "ipconfig",
+          "passed": true,
+          "latency_ms": 677.72
+        },
+        {
+          "id": "cmd-find-python",
+          "shell": "cmd",
+          "prompt": "Use dir to list all Python files recursively in the current directory.",
+          "response": "dir /s /b *.py",
+          "command": "dir /s /b *.py",
+          "passed": true,
+          "latency_ms": 1564.21
+        },
+        {
+          "id": "cmd-ipconfig",
+          "shell": "cmd",
+          "prompt": "Use ipconfig to show the network configuration.",
+          "response": "ipconfig /all",
+          "command": "ipconfig /all",
+          "passed": true,
+          "latency_ms": 689.19
+        }
+      ]
+    }
+  ]
+}

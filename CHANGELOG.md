@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Prevented live streamed assistant replies from being printed twice after the stream completed
+- Aligned README and docs with the current runtime defaults and release story
+- Documented supported shell behavior for `bash`, `powershell`, and `cmd`
+- Replaced stale configuration, installation, session, usage, and troubleshooting guidance with runtime-accurate docs
+- Hardened Windows execution-risk detection for reordered `cmd`/PowerShell deletion patterns and added safer handling for read-only `netsh ... show` queries
+- Tightened first-run Ollama diagnostics and missing-command preflight guidance so setup failures point to concrete recovery commands
+- Added typo suggestions for missing external tools so near-miss commands like `nmpa` can point users toward `nmap`
+- Finalized CI failure artifacts so matrix runs now keep JUnit test reports, coverage XML, and HTML coverage output for debugging
+- Added a committed `v0.3` shell benchmark harness and baseline covering extraction accuracy, safety classification, and live local-model latency
+- Expanded session UX with transcript inspection/export, true REPL session preload, and an in-memory `temp` scratch session
+- Added shell UX helpers including `--describe-shell`, pipe-friendly `--stdout-only`, and opt-in shell integration snippets for Bash, Zsh, and PowerShell
+- Added saved custom prompt roles with local storage, CLI management commands, and runtime reuse via `--role`
+- Added an opt-in local response cache with inspect/clear commands and cache hits that can be served without a live Ollama call
+- Added an opt-in constrained local tool mode with an allowlisted read-only tool set gated by `tools_enabled`
+- Closed remaining user-doc gaps around role deletion, transcript inspection/export, scratch sessions, and REPL session preload
+- Added `--init` onboarding and `--doctor` diagnostics for local setup, config creation, and Ollama readiness checks
+
 ## [0.2.0] - 2026-02-17
 
 ### Week 4 Completed - 2026-02-17

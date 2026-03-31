@@ -1,0 +1,146 @@
+{
+  "suite_name": "v0.3-shell-benchmark-suite",
+  "live_models": [
+    {
+      "class": "general-local",
+      "model": "gpt-oss:20b"
+    },
+    {
+      "class": "code-local",
+      "model": "qwen3-coder:30b"
+    }
+  ],
+  "static_extraction_cases": [
+    {
+      "id": "bash-inline-find",
+      "shell": "bash",
+      "response": "Use `find . -name \"*.py\"` to list Python files.",
+      "expected_command": "find . -name \"*.py\""
+    },
+    {
+      "id": "powershell-prompt-prefixed-block",
+      "shell": "powershell",
+      "response": "```powershell\nPS C:\\\\Users\\\\me> Get-ChildItem -Recurse -Filter *.py\n```",
+      "expected_command": "Get-ChildItem -Recurse -Filter *.py"
+    },
+    {
+      "id": "cmd-numbered-label",
+      "shell": "cmd",
+      "response": "1. Command: dir /s *.py",
+      "expected_command": "dir /s *.py"
+    },
+    {
+      "id": "bash-comment-stripping",
+      "shell": "bash",
+      "response": "```bash\n# comment\nls -la\n```",
+      "expected_command": "ls -la"
+    }
+  ],
+  "safety_cases": [
+    {
+      "id": "low-powershell-list",
+      "shell": "powershell",
+      "command": "Get-ChildItem -Name",
+      "expected_risk": "low"
+    },
+    {
+      "id": "low-netsh-show",
+      "shell": "powershell",
+      "command": "netsh advfirewall show allprofiles",
+      "expected_risk": "low"
+    },
+    {
+      "id": "medium-winget-install",
+      "shell": "powershell",
+      "command": "winget install Git.Git",
+      "expected_risk": "medium"
+    },
+    {
+      "id": "medium-invoke-webrequest",
+      "shell": "powershell",
+      "command": "Invoke-WebRequest https://example.com/tool.zip -OutFile tool.zip",
+      "expected_risk": "medium"
+    },
+    {
+      "id": "high-cmd-delete",
+      "shell": "cmd",
+      "command": "del *.tmp /s /q",
+      "expected_risk": "high"
+    },
+    {
+      "id": "high-stop-computer",
+      "shell": "powershell",
+      "command": "Stop-Computer -Force",
+      "expected_risk": "high"
+    },
+    {
+      "id": "high-reg-add",
+      "shell": "cmd",
+      "command": "reg add HKCU\\Software\\test /v demo /t REG_SZ /d value /f",
+      "expected_risk": "high"
+    },
+    {
+      "id": "critical-remove-item-root",
+      "shell": "powershell",
+      "command": "Remove-Item -LiteralPath C:\\* -Recurse -Force",
+      "expected_risk": "critical"
+    },
+    {
+      "id": "critical-format-drive",
+      "shell": "cmd",
+      "command": "format /Q E:",
+      "expected_risk": "critical"
+    }
+  ],
+  "live_generation_cases": [
+    {
+      "id": "bash-find-python",
+      "shell": "bash",
+      "prompt": "Use find to list all Python files recursively in the current directory.",
+      "expected_patterns": [
+        "^find\\s+\\.\\s+-type\\s+f\\s+-name\\s+[\"']?\\*\\.py[\"']?$",
+        "^find\\s+\\.\\s+-name\\s+[\"']?\\*\\.py[\"']?(?:\\s+-type\\s+f)?$"
+      ]
+    },
+    {
+      "id": "bash-df",
+      "shell": "bash",
+      "prompt": "Use df to show disk usage in human-readable form.",
+      "expected_patterns": [
+        "^df\\s+-h(?:\\s+\\.)?$"
+      ]
+    },
+    {
+      "id": "powershell-find-python",
+      "shell": "powershell",
+      "prompt": "Use Get-ChildItem to list all Python files recursively in the current directory.",
+      "expected_patterns": [
+        "^Get-ChildItem\\b(?=.*-Recurse\\b)(?=.*-Filter\\s+\"?\\*\\.py\"?).*$"
+      ]
+    },
+    {
+      "id": "powershell-ipconfig",
+      "shell": "powershell",
+      "prompt": "Use ipconfig to show the network configuration.",
+      "expected_patterns": [
+        "^ipconfig(?:\\s+/all)?$"
+      ]
+    },
+    {
+      "id": "cmd-find-python",
+      "shell": "cmd",
+      "prompt": "Use dir to list all Python files recursively in the current directory.",
+      "expected_patterns": [
+        "^dir\\b(?=.*\\/s\\b).*(?:\\*\\.py|\\.py).*$"
+      ]
+    },
+    {
+      "id": "cmd-ipconfig",
+      "shell": "cmd",
+      "prompt": "Use ipconfig to show the network configuration.",
+      "expected_patterns": [
+        "^ipconfig(?:\\s+/all)?$"
+      ]
+    }
+  ]
+}

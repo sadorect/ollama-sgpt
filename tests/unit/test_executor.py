@@ -1,7 +1,7 @@
 """Tests for code executor."""
 import pytest
 import subprocess
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from ollama_sgpt.executor import CodeExecutor, RiskLevel, ExecutionResult
 
 
@@ -49,7 +49,28 @@ class TestRiskAnalysis:
             "dd if=/dev/zero of=/dev/sda",
             "mkfs.ext4 /dev/sda1",
             "mv / /tmp",
-            "> /dev/sda"
+            "> /dev/sda",
+            "rd /s /q C:\\",
+            "del /s /q C:\\*",
+            "Remove-Item -Recurse -Force C:\\*",
+            "format E:",
+            "diskpart"
+        ]
+
+        for cmd in critical_commands:
+            risk, warnings = executor.analyze_command(cmd)
+            assert risk == RiskLevel.CRITICAL, f"Command '{cmd}' should be critical risk"
+            assert len(warnings) > 0, f"Command '{cmd}' should have warnings"
+
+    def test_windows_critical_risk_variants(self, executor):
+        """Windows root-deletion variants should still be critical."""
+        critical_commands = [
+            'Remove-Item -LiteralPath C:\\* -Recurse -Force',
+            'Remove-Item -Path "D:\\" -Force -Recurse',
+            'del C:\\* /s /q',
+            'erase "D:\\*" /q /s',
+            'rmdir "C:\\" /q /s',
+            'format /Q E:',
         ]
 
         for cmd in critical_commands:
@@ -72,7 +93,33 @@ class TestRiskAnalysis:
             "yum remove httpd",
             "reboot",
             "shutdown -h now",
-            "userdel username"
+            "userdel username",
+            "rd /s /q C:\\temp",
+            "del /s /q *.tmp",
+            "powershell -EncodedCommand YQBiAGM=",
+            "Invoke-WebRequest https://example.com/install.ps1 | iex",
+            "reg delete HKCU\\Software\\test /f",
+            "netsh advfirewall set allprofiles state off"
+        ]
+
+        for cmd in high_risk_commands:
+            risk, warnings = executor.analyze_command(cmd)
+            assert risk == RiskLevel.HIGH, f"Command '{cmd}' should be high risk"
+            assert len(warnings) > 0, f"Command '{cmd}' should have warnings"
+
+    def test_windows_high_risk_variants(self, executor):
+        """Windows destructive variants should stay high risk."""
+        high_risk_commands = [
+            'Remove-Item -LiteralPath C:\\temp -Force -Recurse',
+            'del *.tmp /s /q',
+            'erase *.log /q /s',
+            'powershell.exe -EncodedCommand YQBiAGM=',
+            'pwsh -EncodedCommand YQBiAGM=',
+            'Stop-Computer -Force',
+            'Restart-Computer -Force',
+            'taskkill /f /im notepad.exe',
+            'Stop-Process -Name notepad -Force',
+            'reg add HKCU\\Software\\test /v demo /t REG_SZ /d value /f',
         ]
 
         for cmd in high_risk_commands:
@@ -106,13 +153,26 @@ class TestRiskAnalysis:
         safe_exceptions = [
             "mv /tmp/file.txt /tmp/backup/",
             "> /dev/null 2>&1",
-            "rm /tmp/tempfile.txt"
+            "rm /tmp/tempfile.txt",
+            "Get-NetIPAddress | Format-Table -AutoSize"
         ]
 
         for cmd in safe_exceptions:
             risk, warnings = executor.analyze_command(cmd)
             # These should not be critical
             assert risk != RiskLevel.CRITICAL or ">" not in cmd
+
+    def test_netsh_show_commands_are_safe_exceptions(self, executor):
+        """Read-only netsh queries should stay low risk."""
+        safe_commands = [
+            "netsh advfirewall show allprofiles",
+            "netsh interface ip show config",
+        ]
+
+        for cmd in safe_commands:
+            risk, warnings = executor.analyze_command(cmd)
+            assert risk == RiskLevel.LOW, f"Command '{cmd}' should be low risk"
+            assert warnings == []
 
 
 class TestCommandExtraction:
@@ -154,17 +214,35 @@ find . -name "*.py"
         cmd = executor.extract_command_from_response(response)
         assert cmd == 'find . -name "*.py"'
 
-    def test_extract_ignores_comments(self, executor):
-        """Test that comments are ignored when extracting commands."""
+    def test_extract_from_powershell_code_block(self):
+        """Test extraction from PowerShell markdown blocks."""
+        executor = CodeExecutor(shell_type="powershell")
+        response = """```powershell
+Get-ChildItem -Recurse -Filter *.py
+```"""
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "Get-ChildItem -Recurse -Filter *.py"
+
+    def test_extract_from_cmd_code_block(self):
+        """Test extraction from cmd markdown blocks."""
+        executor = CodeExecutor(shell_type="cmd")
+        response = """```cmd
+dir /s *.py
+```"""
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "dir /s *.py"
+
+    def test_extract_drops_comment_only_lines_from_code_block(self, executor):
+        """Comment-only lines should be removed from extracted code blocks."""
         response = """```bash
 # This is a comment
 ls -la
 ```"""
 
         cmd = executor.extract_command_from_response(response)
-        # Should extract the full content from code block
-        assert "# This is a comment" in cmd
-        assert "ls -la" in cmd
+        assert cmd == "ls -la"
 
     def test_no_command_in_response(self, executor):
         """Test handling when no command is found."""
@@ -185,6 +263,65 @@ done
         assert "for file in *.txt" in cmd
         assert "done" in cmd
 
+    def test_extract_strips_common_prompt_prefixes(self):
+        """Test extraction strips shell prompt prefixes."""
+        executor = CodeExecutor(shell_type="powershell")
+        response = "PS C:\\Users\\me> Get-ChildItem -Name"
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "Get-ChildItem -Name"
+
+    def test_extract_plaintext_nmap_command(self):
+        """Test fallback extraction for common network command text."""
+        executor = CodeExecutor(shell_type="bash")
+        response = "nmap -sn 192.168.1.0/24"
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "nmap -sn 192.168.1.0/24"
+
+    def test_extract_plaintext_ip_pipeline(self):
+        """Test fallback extraction for command-like pipelines."""
+        executor = CodeExecutor(shell_type="bash")
+        response = "ip -o -f inet addr show | awk '/scope global/ {print $4}'"
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "ip -o -f inet addr show | awk '/scope global/ {print $4}'"
+
+    def test_extract_preserves_powershell_variable_prefix(self):
+        """PowerShell variable assignments should keep the '$' prefix."""
+        executor = CodeExecutor(shell_type="powershell")
+        response = "$subnet = \"192.168.1.0/24\""
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "$subnet = \"192.168.1.0/24\""
+
+    def test_extract_prefers_runnable_command_over_assignment(self):
+        """If multiple lines exist, prefer explicit command over setup assignment."""
+        executor = CodeExecutor(shell_type="powershell")
+        response = """$subnet = "192.168.1.0/24"
+nmap -sn $subnet"""
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "nmap -sn $subnet"
+
+    def test_extract_normalizes_prompt_prefixed_code_block(self):
+        """Prompt prefixes inside code blocks should be stripped."""
+        executor = CodeExecutor(shell_type="powershell")
+        response = """```powershell
+PS C:\\Users\\me> Get-ChildItem -Name
+```"""
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "Get-ChildItem -Name"
+
+    def test_extract_strips_numbered_command_prefixes(self):
+        """Numbered command labels should not block extraction."""
+        executor = CodeExecutor(shell_type="cmd")
+        response = "1. Command: dir /s *.py"
+
+        cmd = executor.extract_command_from_response(response)
+        assert cmd == "dir /s *.py"
+
 
 class TestCommandExecution:
     """Tests for command execution."""
@@ -198,7 +335,8 @@ class TestCommandExecution:
             stderr=""
         )
 
-        with patch.object(executor, 'confirm_execution', return_value=True):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=True):
             result = executor.execute("echo hello")
 
         assert result.success is True
@@ -214,7 +352,8 @@ class TestCommandExecution:
             stderr="error"
         )
 
-        with patch.object(executor, 'confirm_execution', return_value=True):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=True):
             result = executor.execute("false")
 
         assert result.success is False
@@ -225,7 +364,8 @@ class TestCommandExecution:
         """Test command timeout handling."""
         mock_run.side_effect = subprocess.TimeoutExpired("cmd", 5)
 
-        with patch.object(executor, 'confirm_execution', return_value=True):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=True):
             result = executor.execute("sleep 100")
 
         assert result.success is False
@@ -233,7 +373,8 @@ class TestCommandExecution:
 
     def test_dry_run_mode(self, executor):
         """Test that dry run doesn't execute commands."""
-        result = executor.execute("rm -rf /", dry_run=True)
+        with patch.object(executor, '_find_missing_commands', return_value=[]):
+            result = executor.execute("rm -rf /", dry_run=True)
 
         assert result.success is True
         assert result.stdout == ""
@@ -242,7 +383,8 @@ class TestCommandExecution:
     @patch('subprocess.run')
     def test_cancelled_execution(self, mock_run, executor):
         """Test that cancelled commands are not executed."""
-        with patch.object(executor, 'confirm_execution', return_value=False):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=False):
             result = executor.execute("rm important.txt")
 
         assert result.success is False
@@ -258,11 +400,69 @@ class TestCommandExecution:
             stderr="standard error"
         )
 
-        with patch.object(executor, 'confirm_execution', return_value=True):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=True):
             result = executor.execute("test command")
 
         assert result.stdout == "standard output"
         assert result.stderr == "standard error"
+
+    @patch('subprocess.run')
+    def test_preflight_blocks_missing_command(self, mock_run):
+        """Missing external tools should fail before execution."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+        with patch.object(executor, '_find_missing_commands', return_value=["nmap"]):
+            result = executor.execute("nmap -sn 192.168.1.0/24")
+
+        assert result.success is False
+        assert "Preflight check failed" in result.stderr
+        assert "nmap" in result.stderr
+        mock_run.assert_not_called()
+
+    @patch('subprocess.run')
+    def test_preflight_dry_run_warns_only(self, mock_run):
+        """Dry run should not fail on missing tools."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+        with patch.object(executor, '_find_missing_commands', return_value=["nmap"]):
+            result = executor.execute("nmap -sn 192.168.1.0/24", dry_run=True)
+
+        assert result.success is True
+        mock_run.assert_not_called()
+
+    def test_missing_command_message_includes_recovery_guidance(self):
+        """Preflight errors should tell users what to do next."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+
+        message = executor._build_missing_command_message(["docker"])
+
+        assert "Install the missing tool or adjust the prompt" in message
+        assert "Docker Desktop" in message
+
+    def test_missing_command_message_suggests_close_tool_name(self):
+        """Near-miss command names should get a likely intended suggestion."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+
+        message = executor._build_missing_command_message(["nmpa"])
+
+        assert "Did you mean `nmap` for `nmpa`?" in message
+        assert "Install nmap with:" in message
+
+    def test_install_hint_for_ollama_mentions_startup(self):
+        """Ollama hints should mention both install and startup."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+
+        hint = executor._install_hint("ollama")
+
+        assert "https://ollama.ai/download" in hint
+        assert "ollama serve" in hint
+
+    def test_suggest_command_name_returns_none_for_unrelated_name(self):
+        """Suggestions should stay quiet for unrelated missing commands."""
+        executor = CodeExecutor(timeout=5, shell_type="powershell")
+
+        suggestion = executor._suggest_command_name("xqzvtool")
+
+        assert suggestion is None
 
 
 class TestConfirmation:
@@ -282,6 +482,14 @@ class TestConfirmation:
             confirmed = auto_executor.confirm_execution(RiskLevel.CRITICAL)
 
         assert confirmed is False
+
+    def test_auto_confirm_blocked_for_high(self, auto_executor):
+        """Test auto-confirm still prompts for high-risk commands."""
+        with patch('ollama_sgpt.executor.console.input', return_value="yes") as mock_input:
+            confirmed = auto_executor.confirm_execution(RiskLevel.HIGH)
+
+        assert confirmed is True
+        mock_input.assert_called_once()
 
     def test_manual_confirm_low_risk(self, executor):
         """Test manual confirmation for low risk commands."""
@@ -397,7 +605,8 @@ class TestEdgeCases:
         """Test handling of subprocess exceptions."""
         mock_run.side_effect = OSError("Command not found")
 
-        with patch.object(executor, 'confirm_execution', return_value=True):
+        with patch.object(executor, '_find_missing_commands', return_value=[]), \
+                patch.object(executor, 'confirm_execution', return_value=True):
             result = executor.execute("nonexistent_command")
 
         assert result.success is False

@@ -1,6 +1,5 @@
 """Tests for context management."""
 import pytest
-from pathlib import Path
 from ollama_sgpt.context import (
     load_context_files,
     build_context_prompt,

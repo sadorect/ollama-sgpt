@@ -20,6 +20,28 @@ Complete guide to safely executing AI-generated commands with **ollama-sgpt**.
 
 **ollama-sgpt** can execute AI-generated shell commands with built-in **safety checks** to prevent dangerous operations.
 
+### Supported Shell Families
+
+Execution behavior follows the configured `shell` value in `~/.ollama_sgpt.yaml`.
+
+| Shell | Status | Typical use |
+| --- | --- | --- |
+| `bash` | Supported | Default on Linux/macOS |
+| `powershell` | Supported | Default on Windows |
+| `cmd` | Supported | Use when you want `cmd.exe` command syntax |
+
+Notes:
+
+- `bash` is the default on Linux and macOS.
+- `powershell` is the default on Windows.
+- `cmd` must be selected explicitly in the config file:
+
+```yaml
+shell: cmd
+```
+
+- `--shell --execute` is only as safe and correct as the configured shell family, so keep docs, config, and expectations aligned.
+
 ### Key Features
 
 ✅ **4-tier risk assessment** (LOW, MEDIUM, HIGH, CRITICAL)
@@ -240,6 +262,10 @@ ollama-sgpt --shell --dry-run "delete old logs"
 | `mkfs`            | Filesystem creation (data loss)       |
 | `fdisk`           | Disk partitioning                     |
 | `> /dev/sda`      | Direct disk writing                   |
+| `rd` / `rmdir` with `/s /q` on `C:\` | Recursive drive-root deletion (cmd) |
+| `del` / `erase` with `/s /q` on `C:\*` | Recursive forced root deletion (cmd) |
+| `Remove-Item ... -Recurse -Force` on `C:\` or `C:\*` | Recursive root deletion (PowerShell) |
+| `format` / `diskpart` | Disk operations (data loss) |
 
 #### HIGH Patterns
 
@@ -254,6 +280,15 @@ ollama-sgpt --shell --dry-run "delete old logs"
 | `apt remove`          | Package removal         |
 | `reboot` / `shutdown` | System power operations |
 | `userdel`             | User account deletion   |
+| `rd /s /q`            | Recursive deletion (cmd) |
+| `del /s /q`           | Forced recursive deletion (cmd) |
+| `powershell` / `pwsh` with `-EncodedCommand` | Encoded script execution |
+| `Invoke-WebRequest ... \| iex` | Remote code execution (PowerShell) |
+| `reg delete ... /f`   | Forced registry deletion |
+| `reg add` / `reg import` | Registry modification |
+| `netsh ...`           | Network configuration changes |
+| `Stop-Computer` / `Restart-Computer` | System power operations |
+| `taskkill /f` / `Stop-Process -Force` | Force killing processes |
 
 #### MEDIUM Patterns
 
@@ -266,15 +301,20 @@ ollama-sgpt --shell --dry-run "delete old logs"
 | `apt install`     | Package installation        |
 | `pip install`     | Python package installation |
 | `sudo`            | Elevated privileges         |
+| `winget install`  | Windows package installation |
+| `choco install`   | Chocolatey package installation |
+| `Invoke-WebRequest` / `iwr` | Network operations |
+| `taskkill` / `Stop-Process` | Process control |
 
 #### LOW Patterns (Safe)
 
-| Pattern                 | Oper ation            |
+| Pattern                 | Operation             |
 | ----------------------- | --------------------- |
 | `ls`, `cat`, `grep`     | Read operations       |
 | `pwd`, `whoami`, `date` | System info           |
 | `df`, `du`, `ps`        | Status commands       |
 | `git status`, `git log` | Version control reads |
+| `netsh ... show ...`   | Read-only network queries |
 
 ---
 

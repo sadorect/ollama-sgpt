@@ -1,75 +1,127 @@
 # Installation Guide
 
-Welcome to **ollama-sgpt**! This guide will help you install and set up the tool on your system.
+This guide covers the current installation paths for **ollama-sgpt** and aligns with the runtime defaults in the repository.
 
 ---
 
 ## Prerequisites
 
-### 1. Ollama
+### 1. Python
 
-ollama-sgpt requires [Ollama](https://ollama.ai) to be installed and running on your system.
+- Python `3.9+`
 
-**Install Ollama:**
+Check your version:
 
 ```bash
-# macOS
-brew install ollama
-
-# Linux
-curl https://ollama.ai/install.sh | sh
-
-# Windows
-# Download from https://ollama.ai/download
+python --version
 ```
 
-**Start Ollama server:**
+### 2. Ollama
+
+Install Ollama from [https://ollama.ai/download](https://ollama.ai/download) or your platform package manager, then start it:
 
 ```bash
 ollama serve
 ```
 
-**Download a model:**
+Pull at least one model before first use:
 
 ```bash
-# Download the default model (llama2)
-ollama pull llama2
-
-# Or use other models
-ollama pull mistral
-ollama pull codellama
+ollama pull llama3
 ```
 
-### 2. Python
+Other good options:
 
-- **Python 3.9 or higher** is required
-- Check your version: `python --version`
+- `mistral`
+- `codellama`
 
 ---
 
-## Installation Methods
+## Recommended Install Path
 
-### Option 1: Install from PyPI (Recommended)
+### Install with `pipx`
+
+```bash
+pipx install ollama-sgpt
+```
+
+Why this is recommended:
+
+- isolated CLI environment
+- simple upgrades
+- no manual virtualenv management
+
+---
+
+## 5-Minute Quickstart
+
+### Linux or macOS
+
+```bash
+# 1) Install pipx if needed
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# 2) Install ollama-sgpt
+pipx install ollama-sgpt
+
+# 3) Start Ollama and pull a model
+ollama serve
+ollama pull llama3
+
+# 4) Verify
+ollama-sgpt --version
+ollama-sgpt "hello"
+ollama-sgpt --shell "list python files recursively"
+```
+
+### Windows PowerShell
+
+```powershell
+# 1) Install pipx if needed
+py -m pip install --user pipx
+py -m pipx ensurepath
+
+# 2) Install ollama-sgpt
+pipx install ollama-sgpt
+
+# 3) Start Ollama and pull a model
+ollama serve
+ollama pull llama3
+
+# 4) Verify
+ollama-sgpt --version
+ollama-sgpt "hello"
+ollama-sgpt --shell "list python files recursively"
+```
+
+---
+
+## Other Installation Methods
+
+### Install with `pip`
 
 ```bash
 pip install ollama-sgpt
 ```
 
-### Option 2: Install from Source
+### Install From Source
+
+From the repository root:
 
 ```bash
-# Clone the repository
 git clone https://github.com/sadorect/ollama-sgpt.git
-cd ollama-sgpt
-
-# Install in development mode
+cd ollama-sgpt/ollama-sgpt
 pip install -e .
+```
 
-# Or install with dev dependencies
+With dev dependencies:
+
+```bash
 pip install -e ".[dev]"
 ```
 
-### Option 3: Install from Git
+### Install Directly From Git
 
 ```bash
 pip install git+https://github.com/sadorect/ollama-sgpt.git
@@ -85,170 +137,161 @@ pip install git+https://github.com/sadorect/ollama-sgpt.git
 ollama-sgpt --version
 ```
 
-### Test Basic Functionality
+### Confirm Ollama Connectivity
 
 ```bash
-# Simple query
-ollama-sgpt "what is the meaning of life?"
-
-# Check Ollama connection
-ollama-sgpt "hello" --model llama2
+ollama --version
+ollama list
+ollama-sgpt "hello" --model llama3
 ```
 
-### Run Tests (From Source)
+### Check The Default Shell Behavior
+
+On Linux/macOS:
+
+- default shell family is `bash`
+
+On Windows:
+
+- default shell family is `powershell`
+
+If you want `cmd`, set it explicitly in your config file:
+
+```yaml
+shell: cmd
+```
+
+Then try:
 
 ```bash
-cd ollama-sgpt
-pytest
+ollama-sgpt --shell "list python files recursively"
 ```
 
 ---
 
-## Configuration
+## Current Runtime Paths
 
-### Default Configuration
+These locations reflect the current codebase:
 
-ollama-sgpt works out of the box with sensible defaults:
+- Config file: `~/.ollama_sgpt.yaml`
+- History file: `~/.ollama_sgpt_history.json`
+- Session directory: `~/.ollama-sgpt/sessions/`
 
-- **Ollama URL**: `http://localhost:11434`
-- **Model**: `llama2`
-- **Config Location**: `~/.ollama-sgpt/config.yaml`
+Example config:
 
-### Create Custom Configuration
-
-```bash
-mkdir -p ~/.ollama-sgpt
-cat > ~/.ollama-sgpt/config.yaml << EOF
-ollama_url: http://localhost:11434
-model: llama2
+```yaml
+model: llama3
+ollama_url: http://localhost:11434/api/chat
 stream: true
-history_file: ~/.ollama-sgpt/history.json
-EOF
+shell: bash
 ```
 
-See [Configuration Guide](configuration.md) for more options.
+On Windows, use:
 
----
-
-## Platform-Specific Notes
-
-### macOS
-
-- Install via Homebrew: `brew install ollama`
-- Ollama runs as a service automatically
-- Config location: `~/.ollama-sgpt/`
-
-### Linux
-
-- Ollama typically runs on port 11434
-- Start manually: `ollama serve`
-- Or use systemd: `systemctl start ollama`
-- Config location: `~/.ollama-sgpt/`
-
-### Windows
-
-- Download Ollama installer from official website
-- Ollama runs as Windows service
-- Config location: `%USERPROFILE%\.ollama-sgpt\`
-- Use `pip install ollama-sgpt` in PowerShell or CMD
+```yaml
+shell: powershell
+```
 
 ---
 
 ## Troubleshooting Installation
 
-### Issue: "ollama-sgpt: command not found"
+### `ollama-sgpt: command not found`
 
-**Solution:**
+If installed with `pipx`, refresh the path:
 
 ```bash
-# Ensure Python's bin directory is in PATH
-export PATH="$PATH:$HOME/.local/bin"
-
-# Or use pip's user installation flag
-pip install --user ollama-sgpt
+python -m pipx ensurepath
 ```
 
-### Issue: "Connection refused to localhost:11434"
+If installed with `pip`, confirm your Python scripts directory is on `PATH`.
 
-**Solution:**
+### Cannot connect to `localhost:11434`
 
-1. Check if Ollama is running: `curl http://localhost:11434/api/version`
-2. Start Ollama: `ollama serve`
-3. Check firewall settings
-
-### Issue: "Model not found"
-
-**Solution:**
+Check whether Ollama is up:
 
 ```bash
-# Pull the model first
-ollama pull llama2
-
-# Or specify a different model
-ollama-sgpt "hello" --model mistral
+curl http://localhost:11434/api/version
 ```
 
-### Issue: "Permission denied"
+```powershell
+Invoke-WebRequest http://localhost:11434/api/version
+```
 
-**Solution:**
+Then start it if needed:
 
 ```bash
-# Install without sudo (recommended)
-pip install --user ollama-sgpt
+ollama serve
+```
 
-# Or use virtual environment
-python -m venv venv
-source venv/bin/activate
-pip install ollama-sgpt
+### Model not found
+
+Pull the model first:
+
+```bash
+ollama pull llama3
+```
+
+If no local models are installed yet, this is also the first recovery step. Verify with:
+
+```bash
+ollama list
+```
+
+### Need Command Prompt output instead of PowerShell
+
+Set the shell in the config file:
+
+```yaml
+shell: cmd
 ```
 
 ---
 
-## Upgrading
+## Upgrade
 
-### Upgrade from PyPI
+### Upgrade a `pipx` install
+
+```bash
+pipx upgrade ollama-sgpt
+```
+
+### Upgrade a `pip` install
 
 ```bash
 pip install --upgrade ollama-sgpt
 ```
 
-### Upgrade from Source
+### Upgrade a source install
 
 ```bash
 cd ollama-sgpt
 git pull
+cd ollama-sgpt
 pip install -e .
 ```
 
 ---
 
-## Uninstallation
+## Uninstall
+
+Remove the package:
 
 ```bash
-# Uninstall package
 pip uninstall ollama-sgpt
-
-# Remove configuration (optional)
-rm -rf ~/.ollama-sgpt
 ```
 
----
+Optional cleanup:
 
-## Next Steps
-
-- Read the [Usage Guide](usage.md) to learn how to use ollama-sgpt
-- Explore [Configuration Options](configuration.md)
-- Check out [Example Workflows](../examples/workflows/)
-- Learn about [Safe Code Execution](execution.md)
+- delete `~/.ollama_sgpt.yaml`
+- delete `~/.ollama_sgpt_history.json`
+- delete `~/.ollama-sgpt/`
 
 ---
 
-## Getting Help
+## Related Documentation
 
-- **Documentation**: https://github.com/sadorect/ollama-sgpt/docs
-- **Issues**: https://github.com/sadorect/ollama-sgpt/issues
-- **Discussions**: https://github.com/sadorect/ollama-sgpt/discussions
-
----
-
-**Congratulations! You're ready to use ollama-sgpt! 🎉**
+- [Configuration Guide](configuration.md)
+- [Usage Guide](usage.md)
+- [Execution Safety Guide](execution.md)
+- [Troubleshooting](troubleshooting.md)

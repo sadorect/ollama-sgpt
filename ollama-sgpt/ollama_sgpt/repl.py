@@ -53,7 +53,9 @@ def interactive_loop_enhanced(
     session_manager: Optional[object] = None,
     session_name: Optional[str] = None,
     executor: Optional[object] = None,
-    dry_run: bool = False
+    dry_run: bool = False,
+    initial_history: Optional[list] = None,
+    transient_session: bool = False,
 ):
     """Enhanced interactive loop with multi-line support and special commands.
 
@@ -65,6 +67,8 @@ def interactive_loop_enhanced(
         session_name: Optional session name to use
         executor: Optional CodeExecutor instance for command execution
         dry_run: If True, only preview commands without executing
+        initial_history: Optional existing conversation history to preload
+        transient_session: If True, show that the named session is ephemeral
     """
     history_file = Path.home() / ".ollama-sgpt" / "repl_history"
     session = create_repl_session(history_file)
@@ -75,6 +79,8 @@ def interactive_loop_enhanced(
 
     if session_name:
         console.print(f"[dim]Session: {session_name}[/dim]")
+        if transient_session:
+            console.print("[dim]Temporary session: this conversation is not saved to disk[/dim]")
 
     console.print()
     console.print("[bold cyan]Getting Started:[/bold cyan]")
@@ -95,7 +101,15 @@ def interactive_loop_enhanced(
             "[dim]💡 Tip: Add --execute flag to run generated commands[/dim]")
         console.print()
 
-    conversation_history = []
+    conversation_history = [
+        {"role": msg["role"], "content": msg["content"]}
+        for msg in (initial_history or [])
+    ]
+    if conversation_history:
+        console.print(
+            f"[dim]Loaded {len(conversation_history)} message(s) from session history[/dim]"
+        )
+        console.print()
 
     while True:
         try:
@@ -116,20 +130,31 @@ def interactive_loop_enhanced(
                     break  # Exit if /exit or /quit
                 continue
 
-            # Add to conversation history
+            # Get response
+            console.print()
+            response = chat_function(
+                user_input,
+                conversation_history.copy(),
+                config,
+                role,
+            )
+
+            # Add user/assistant exchange only after the model call succeeds so
+            # the next prompt sees the same history as the one-shot CLI path.
             conversation_history.append({
                 "role": "user",
                 "content": user_input
+            })
+            conversation_history.append({
+                "role": "assistant",
+                "content": response
             })
 
             # Save to session if using sessions
             if session_manager and session_name:
                 session_manager.add_message(session_name, "user", user_input)
-
-            # Get response
-            console.print()
-            response = chat_function(
-                user_input, conversation_history, config, role)
+                session_manager.add_message(
+                    session_name, "assistant", response)
 
             # Execute command if executor is available and role is shell
             if executor and role == "shell":
@@ -149,17 +174,6 @@ def interactive_loop_enhanced(
                         if session_manager and session_name:
                             session_manager.add_message(
                                 session_name, "assistant", exec_msg)
-
-            # Add response to history
-            conversation_history.append({
-                "role": "assistant",
-                "content": response
-            })
-
-            # Save response to session
-            if session_manager and session_name:
-                session_manager.add_message(
-                    session_name, "assistant", response)
 
             console.print()
 

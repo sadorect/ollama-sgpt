@@ -75,7 +75,7 @@ testpaths = ["../tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=ollama_sgpt --cov-report=term-missing --cov-report=html"
+addopts = "-v --cov=ollama_sgpt --cov-report=term-missing --cov-report=html --cov-report=xml:coverage.xml"
 
 [tool.coverage.run]
 source = ["ollama_sgpt"]
