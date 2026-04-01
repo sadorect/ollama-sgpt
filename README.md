@@ -26,8 +26,8 @@ The active `v0.3` focus is:
 
 Planning documents:
 
-- [Deployment Roadmap](ollama-sgpt/docs/roadmap.md)
-- [Release Tracker](ollama-sgpt/docs/release-tracker.md)
+- [Deployment Roadmap](docs/roadmap.md)
+- [Release Tracker](docs/release-tracker.md)
 
 ## Core Features
 
@@ -65,7 +65,7 @@ Notes:
 ### Recommended: `pipx`
 
 ```bash
-pipx install ollama-sgpt
+pipx install git+https://github.com/sadorect/ollama-sgpt.git
 ```
 
 ### Quickstart
@@ -82,11 +82,11 @@ ollama-sgpt --shell "list python files recursively"
 
 ### Install From Source
 
-From the repository root:
+After cloning, the repository root is the Python project root, so you can work directly from `ollama-sgpt/` without dropping into a second nested package directory.
 
 ```bash
 git clone https://github.com/sadorect/ollama-sgpt.git
-cd ollama-sgpt/ollama-sgpt
+cd ollama-sgpt
 pip install -e .
 ```
 
@@ -297,7 +297,7 @@ See [benchmarks/README.md](benchmarks/README.md) for the runner, suite definitio
 
 ```bash
 git clone https://github.com/sadorect/ollama-sgpt.git
-cd ollama-sgpt/ollama-sgpt
+cd ollama-sgpt
 python -m venv venv
 source venv/bin/activate
 pip install -e ".[dev]"

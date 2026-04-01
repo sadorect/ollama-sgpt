@@ -42,7 +42,7 @@ Other good options:
 ### Install with `pipx`
 
 ```bash
-pipx install ollama-sgpt
+pipx install git+https://github.com/sadorect/ollama-sgpt.git
 ```
 
 Why this is recommended:
@@ -63,7 +63,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
 # 2) Install ollama-sgpt
-pipx install ollama-sgpt
+pipx install git+https://github.com/sadorect/ollama-sgpt.git
 
 # 3) Start Ollama and pull a model
 ollama serve
@@ -83,7 +83,7 @@ py -m pip install --user pipx
 py -m pipx ensurepath
 
 # 2) Install ollama-sgpt
-pipx install ollama-sgpt
+pipx install git+https://github.com/sadorect/ollama-sgpt.git
 
 # 3) Start Ollama and pull a model
 ollama serve
@@ -102,7 +102,7 @@ ollama-sgpt --shell "list python files recursively"
 ### Install with `pip`
 
 ```bash
-pip install ollama-sgpt
+pip install git+https://github.com/sadorect/ollama-sgpt.git
 ```
 
 ### Install From Source
@@ -111,7 +111,7 @@ From the repository root:
 
 ```bash
 git clone https://github.com/sadorect/ollama-sgpt.git
-cd ollama-sgpt/ollama-sgpt
+cd ollama-sgpt
 pip install -e .
 ```
 
@@ -259,7 +259,7 @@ pipx upgrade ollama-sgpt
 ### Upgrade a `pip` install
 
 ```bash
-pip install --upgrade ollama-sgpt
+pip install --upgrade git+https://github.com/sadorect/ollama-sgpt.git
 ```
 
 ### Upgrade a source install
@@ -267,7 +267,6 @@ pip install --upgrade ollama-sgpt
 ```bash
 cd ollama-sgpt
 git pull
-cd ollama-sgpt
 pip install -e .
 ```
 

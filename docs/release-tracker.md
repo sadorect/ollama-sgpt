@@ -1,4 +1,4 @@
-# v0.3 Release Tracker
+﻿# v0.3 Release Tracker
 
 ## Purpose
 
@@ -70,7 +70,7 @@ The repo currently mixes release states and default values across package metada
 
 **Likely Files**
 
-- `ollama-sgpt/pyproject.toml`
+- `pyproject.toml`
 - `README.md`
 - `docs/installation.md`
 - `docs/configuration.md`
@@ -105,7 +105,7 @@ The release promise depends on explicit shell support, not best-effort behavior.
 - `README.md`
 - `docs/usage.md`
 - `docs/execution.md`
-- `ollama-sgpt/docs/roadmap.md`
+- `docs/roadmap.md`
 
 **Dependencies**
 
@@ -131,9 +131,9 @@ This is the core product behavior for `--shell`.
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- `ollama-sgpt/ollama_sgpt/roles.py`
-- `ollama-sgpt/ollama_sgpt/executor.py`
+- `ollama_sgpt/cli.py`
+- `ollama_sgpt/roles.py`
+- `ollama_sgpt/executor.py`
 - `tests/unit/test_cli.py`
 - `tests/unit/test_executor.py`
 
@@ -162,7 +162,7 @@ The current release goal is trustable cross-platform execution safety.
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/executor.py`
+- `ollama_sgpt/executor.py`
 - `docs/execution.md`
 - `tests/unit/test_executor.py`
 
@@ -191,9 +191,9 @@ Users should not need repo knowledge to recover from missing Ollama, missing mod
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- `ollama-sgpt/ollama_sgpt/ollama_client.py`
-- `ollama-sgpt/ollama_sgpt/executor.py`
+- `ollama_sgpt/cli.py`
+- `ollama_sgpt/ollama_client.py`
+- `ollama_sgpt/executor.py`
 - `docs/troubleshooting.md`
 - `docs/installation.md`
 
@@ -252,7 +252,7 @@ Cross-platform release claims need repeatable CI proof.
 **Likely Files**
 
 - `.github/workflows/test.yml`
-- `ollama-sgpt/pyproject.toml`
+- `pyproject.toml`
 
 **Dependencies**
 
@@ -494,9 +494,9 @@ The repo already has named sessions and one-shot resume, but interactive resume 
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- `ollama-sgpt/ollama_sgpt/repl.py`
-- `ollama-sgpt/ollama_sgpt/session.py`
+- `ollama_sgpt/cli.py`
+- `ollama_sgpt/repl.py`
+- `ollama_sgpt/session.py`
 - `docs/usage.md`
 - `tests/unit/test_cli.py`
 - `tests/unit/test_repl.py`
@@ -524,8 +524,8 @@ ShellGPT still feels smoother for command generation and terminal-native usage.
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- `ollama-sgpt/ollama_sgpt/executor.py`
+- `ollama_sgpt/cli.py`
+- `ollama_sgpt/executor.py`
 - `docs/usage.md`
 - `docs/execution.md`
 - install helper scripts under `scripts/` if needed
@@ -553,8 +553,8 @@ ShellGPT supports custom roles; `ollama-sgpt` currently exposes only built-in mo
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/roles.py`
-- new role storage helpers under `ollama-sgpt/ollama_sgpt/`
+- `ollama_sgpt/roles.py`
+- new role storage helpers under `ollama_sgpt/`
 - `docs/configuration.md`
 - `docs/usage.md`
 - `tests/unit/test_roles.py` or equivalent
@@ -585,8 +585,8 @@ Caching is a major convenience win, but it must not undermine command freshness 
 
 **Likely Files**
 
-- new cache module under `ollama-sgpt/ollama_sgpt/`
-- `ollama-sgpt/ollama_sgpt/cli.py`
+- new cache module under `ollama_sgpt/`
+- `ollama_sgpt/cli.py`
 - `docs/configuration.md`
 - `docs/usage.md`
 - `tests/unit/test_cache.py`
@@ -618,9 +618,9 @@ This is the largest capability gap, but it should be implemented more carefully 
 
 **Likely Files**
 
-- new tool runtime under `ollama-sgpt/ollama_sgpt/`
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- `ollama-sgpt/ollama_sgpt/executor.py`
+- new tool runtime under `ollama_sgpt/`
+- `ollama_sgpt/cli.py`
+- `ollama_sgpt/executor.py`
 - `docs/execution.md`
 - `docs/usage.md`
 - new tests for tool routing and safety boundaries
@@ -647,9 +647,9 @@ Broader backend support helps adoption, but should not dilute the Ollama-first s
 
 **Likely Files**
 
-- `ollama-sgpt/ollama_sgpt/config.py`
-- `ollama-sgpt/ollama_sgpt/cli.py`
-- provider client modules under `ollama-sgpt/ollama_sgpt/`
+- `ollama_sgpt/config.py`
+- `ollama_sgpt/cli.py`
+- provider client modules under `ollama_sgpt/`
 - docs and benchmark files
 
 **Definition of Done**
@@ -678,3 +678,4 @@ The gap is meaningfully closed when all of the following are true:
 - repeat prompts can benefit from local caching where safe
 - tool calling exists, but remains transparent and bounded
 - none of the above weakens the local-first or safety-first posture
+
